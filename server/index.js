@@ -1,0 +1,316 @@
+
+import express from 'express';
+import cors from 'cors';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+// Configuração de ambiente para ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+dotenv.config({ path: join(__dirname, '../.env') }); // Sobe um nível para achar .env na raiz
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// Log middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error("❌ Erro: Credenciais do Supabase não encontradas no .env");
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// --- CONNECTION TEST ENDPOINT ---
+app.post('/api/test-connection', async (req, res) => {
+    const { baseUrl, token, instanceName } = req.body;
+
+    if (!baseUrl || !token || !instanceName) {
+        return res.status(400).json({ error: 'Configuração incompleta' });
+    }
+
+    try {
+        console.log(`🔌 Testando conexão com: ${baseUrl} / ${instanceName}`);
+        
+        // Tenta obter o estado da conexão
+        const apiUrl = `${baseUrl}/instance/connectionState/${instanceName}`;
+        
+        const response = await axios.get(apiUrl, {
+            headers: {
+                'apikey': token
+            }
+        });
+
+        // Evolution API v2 geralmente retorna objecto com 'instance' e 'state'
+        const state = response.data?.instance?.state || response.data?.state;
+
+        if (state === 'open' || state === 'connecting') {
+             res.json({ status: 'success', state, message: 'Conexão estabelecida com sucesso!' });
+        } else {
+             res.json({ status: 'warning', state, message: `Instância encontrada, mas estado é: ${state}` });
+        }
+
+    } catch (e) {
+        console.error('❌ Falha no teste de conexão:', e.message);
+        const errorMsg = e.response?.data?.message || e.message;
+        res.status(200).json({ status: 'error', error: errorMsg });
+    }
+});
+
+// --- WHATSAPP ENDPOINT ---
+app.post('/api/send-welcome', async (req, res) => {
+    const { name, phone, propertyTitle } = req.body;
+    
+    if (!name || !phone) return res.status(400).json({ error: 'Dados insuficientes' });
+
+    try {
+        // 1. Buscar Configurações do Banco de Dados
+        const { data: settingsData, error } = await supabase
+            .from('site_settings')
+            .select('integrations')
+            .single();
+
+        if (error || !settingsData?.integrations?.evolutionApi?.enabled) {
+            console.log('⚠️ Envio de WhatsApp ignorado: Integração desativada ou não configurada.');
+            return res.json({ status: 'skipeed', reason: 'disabled' });
+        }
+
+        const config = settingsData.integrations.evolutionApi;
+        
+        // 2. Formatar Telefone (remover caracteres não numéricos)
+        const cleanPhone = phone.replace(/\D/g, '');
+        // Adicionar código do país se necessário (assumindo BR 55)
+        const formattedPhone = cleanPhone.length <= 11 ? `55${cleanPhone}` : cleanPhone;
+
+        // 3. Montar Mensagem
+        const message = `Olá, ${name}! 👋\n\nRecebemos seu interesse no imóvel *${propertyTitle}*.\n\nNosso especialista já foi notificado e entrará em contato em breve para tirar suas dúvidas.\n\nEnquanto isso, salve nosso contato!`;
+
+        // 4. Enviar via Evolution API
+        const apiUrl = `${config.baseUrl}/message/sendText/${config.instanceName}`;
+        
+        console.log(`📤 Enviando WhatsApp para ${formattedPhone} via ${apiUrl}`);
+
+        await axios.post(apiUrl, {
+            number: formattedPhone,
+            text: message
+        }, {
+            headers: {
+                'apikey': config.token,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        console.log(`✅ WhatsApp enviado com sucesso para ${name}`);
+        res.json({ status: 'sent' });
+
+    } catch (e) {
+        console.error('❌ Erro ao enviar WhatsApp:', e.message);
+        // Não retornar 500 para não quebrar o fluxo do frontend, apenas logar
+        res.status(200).json({ status: 'error', error: e.message });
+    }
+});
+
+// Endpoint de Migração
+app.post('/api/migrate', async (req, res) => {
+  const { startUrl } = req.body;
+  if (!startUrl) return res.status(400).json({ error: 'URL é obrigatória' });
+
+  console.log(`🚀 Recebida solicitação de migração para: ${startUrl}`);
+  
+  // Responde imediatamente para não bloquear o front (processamento em background)
+  res.json({ message: 'Migração iniciada em background', status: 'started' });
+
+  try {
+    await runScraper(startUrl);
+  } catch (error) {
+    console.error("❌ Erro no processo de scraper:", error);
+  }
+});
+
+const BASE_URL = 'https://www.fazendasbrasil.com.br';
+
+async function runScraper(targetUrl) {
+    console.log(`🚜 Iniciando scraper em: ${targetUrl}`);
+    
+    // Tenta pegar múltiplas páginas (ex: 3 páginas para teste)
+    // Para simplificar, vamos pegar apenas a URL passada e processar seus links
+    
+    try {
+        const { data: pageHtml } = await axios.get(targetUrl, {
+             headers: { 
+               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+               'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+             }
+        });
+        
+        console.log(`📄 HTML salvo em debug_scrape.html (${pageHtml.length} bytes)`);
+
+        const $ = cheerio.load(pageHtml);
+        
+        console.log(`📄 HTML carregado: ${pageHtml.length} caracteres.`);
+
+        const propertyLinks = [];
+        
+        // Nova estratégia: procurar pelos IDs dos cards de propriedade
+        // Ex: <div class="col-sm-6 col-md-4 col-lg-4 col-xl-4 col-xxl-3 card-deck" id="property-25">
+        $('[id^="property-"]').each((i, el) => {
+            const id = $(el).attr('id');
+            if (id) {
+                const propertyId = id.replace('property-', '');
+                // Pegar o link real dentro do card
+                const link = $(el).find('a[href*="/imoveis/"]').first().attr('href');
+                if (link) {
+                    const fullUrl = link.startsWith('http') ? link : `${BASE_URL}${link}`;
+                    console.log(`   ✅ Imóvel #${propertyId}: ${fullUrl}`);
+                    if (!propertyLinks.includes(fullUrl)) propertyLinks.push(fullUrl);
+                }
+            }
+        });
+
+        console.log(`🔎 Encontrados ${propertyLinks.length} imóveis válidos.`);
+        
+        // Limitar para teste (processar apenas os primeiros 5)
+        const linksToProcess = propertyLinks.slice(0, 5);
+        console.log(`📦 Processando ${linksToProcess.length} imóveis (limitado para teste)...\n`);
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (let i = 0; i < linksToProcess.length; i++) {
+            try {
+                const link = linksToProcess[i];
+                console.log(`\n[${i + 1}/${linksToProcess.length}] Processando: ${link}`);
+                const fullUrl = link.startsWith('http') ? link : `${BASE_URL}${link}`;
+                await processProperty(fullUrl);
+                successCount++;
+                console.log(`✅ Sucesso! Total processado: ${successCount}`);
+            } catch (error) {
+                errorCount++;
+                console.error(`❌ Erro ao processar item ${i + 1}:`, error.message);
+                console.error(`Stack:`, error.stack);
+            }
+            
+            // Delay anti-bloqueio
+            console.log(`⏳ Aguardando 2 segundos...`);
+            await new Promise(r => setTimeout(r, 2000));
+        }
+        
+        console.log(`\n🏁 Ciclo finalizado!`);
+        console.log(`✅ Sucessos: ${successCount}`);
+        console.log(`❌ Erros: ${errorCount}`);
+
+    } catch (e) {
+        console.error("Erro ao acessar página de listagem:", e.message);
+    }
+}
+
+async function processProperty(url) {
+    try {
+        console.time(`Processando ${url}`);
+        const { data: html } = await axios.get(url, {
+             headers: { 'User-Agent': 'Mozilla/5.0' }
+        });
+        const $ = cheerio.load(html);
+
+        // Extração Robusta
+        const title = $('h1').text().trim() || $('h2').first().text().trim() || 'Sem Título';
+        const bodyText = $('body').text();
+
+        // Preço
+        let price = 0;
+        let priceText = $('.valor').text().trim() || $('.price').text().trim(); 
+        if (!priceText) {
+            // Regex fallback
+            const match = bodyText.match(/R\$\s?([\d.,]+)/);
+            if (match) priceText = match[1];
+        }
+        if (priceText) {
+             price = parseFloat(priceText.replace(/[^\d,]/g, '').replace(',', '.'));
+        }
+
+        // Location
+        let city = 'Importado'; 
+        let state = 'BR';
+        const titleMatch = title.match(/em\s(.*?)\s-\s([A-Z]{2})/);
+        if (titleMatch) {
+            city = titleMatch[1].trim();
+            state = titleMatch[2].trim();
+        }
+
+        // Description
+        const description = $('.descricao-imovel').text().trim() || $('.description').text().trim() || $('p').text().slice(0, 300);
+
+        // Area e Imagens
+        let area = 0;
+        const areaMatch = bodyText.match(/([\d.,]+)\s?(hectares|ha|alqueires)/i);
+        if (areaMatch) {
+           let val = parseFloat(areaMatch[1].replace('.','').replace(',','.'));
+           if (areaMatch[2].toLowerCase().includes('alq')) val *= 48400; // Alqueire SP
+           else val *= 10000; // Hectare
+           area = val;
+        }
+
+        const images = [];
+        $('img').each((i, el) => {
+            const src = $(el).attr('src');
+            if (src && (src.endsWith('.jpg') || src.endsWith('.png')) && !src.includes('logo')) {
+                const full = src.startsWith('http') ? src : `${BASE_URL}${src}`;
+                if (images.length < 10 && !images.includes(full)) images.push(full);
+            }
+        });
+
+        // Upsert no Supabase
+        const propertyData = {
+            title,
+            description,
+            price: price || 0,
+            type: 'Fazenda',
+            status: 'Disponível',
+            city,
+            state, 
+            features: { area, bedrooms: 0, bathrooms: 0 },
+            images,
+            highlighted: true,
+            created_at: new Date().toISOString()
+        };
+        
+        console.log(`   💾 Tentando salvar: ${title}`);
+        console.log(`   📊 Dados:`, JSON.stringify(propertyData, null, 2));
+        
+        const { data, error } = await supabase.from('properties').upsert(propertyData, { onConflict: 'title' });
+
+        if (error) {
+            console.error(`   ❌ Falha DB: ${title}`);
+            console.error(`   ❌ Erro completo:`, JSON.stringify(error, null, 2));
+        } else {
+            console.log(`   ✅ Migrado com sucesso: ${title}`);
+        }
+        
+        console.timeEnd(`Processando ${url}`);
+
+    } catch (e) {
+        console.error(`   ⚠️ Erro ao ler imóvel ${url}:`, e.message);
+    }
+}
+
+// Health Check
+app.get('/', (req, res) => {
+  res.send('Servidor de Migração Online 🚀');
+});
+
+const PORT = 3002;
+app.listen(PORT, () => {
+    console.log(`🔌 Servidor de Migração rodando na porta ${PORT}`);
+});
