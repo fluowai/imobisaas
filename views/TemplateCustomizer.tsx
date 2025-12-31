@@ -628,7 +628,8 @@ const TemplateCustomizer: React.FC = () => {
                               return;
                           }
                           try {
-                              const res = await fetch('http://localhost:3002/api/test-connection', {
+                              // Use relative path for Vercel Serverless Function
+                              const res = await fetch('/api/test-connection', {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify(config)
@@ -638,7 +639,8 @@ const TemplateCustomizer: React.FC = () => {
                               else if (data.status === 'warning') alert('⚠️ ' + data.message);
                               else alert('❌ ' + (data.error || 'Erro desconhecido'));
                           } catch (e) {
-                              alert('❌ Falha ao contactar servidor local.');
+                              console.error(e);
+                              alert('❌ Falha ao contactar servidor de integração.');
                           }
                       }}
                       className="w-full py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors"

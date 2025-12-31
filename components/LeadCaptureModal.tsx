@@ -38,15 +38,34 @@ const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({ isOpen, onClose, pr
         // Continue to redirect anyway
       }
 
-      // 2. Redirect to WhatsApp
+      // 2. Trigger WhatsApp Automation (Serverless)
+      try {
+        await fetch('/api/send-welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            name, 
+            phone, 
+            propertyTitle 
+          })
+        });
+      } catch (apiError) {
+        console.error('Failed to trigger automation:', apiError);
+      }
+
+      // 3. Redirect to WhatsApp (User Interface)
       const message = `Olá! Me chamo ${name}. Gostaria de mais informações sobre o imóvel: ${propertyTitle}`;
       const whatsappNumber = settings.socialLinks?.whatsapp?.replace(/\D/g, '') || '';
       
       if (whatsappNumber) {
-         window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, '_blank');
+         // Pequeno delay para garantir que a requisição anterior não seja cancelada pelo navegador
+         setTimeout(() => {
+            window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, '_blank');
+            onClose();
+         }, 500);
+      } else {
+        onClose();
       }
-
-      onClose();
     } catch (error) {
       console.error('Unexpected error:', error);
       onClose();
