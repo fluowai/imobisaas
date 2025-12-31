@@ -629,18 +629,34 @@ const TemplateCustomizer: React.FC = () => {
                           }
                           try {
                               // Use relative path for Vercel Serverless Function
+                              console.log('Testando conexão via /api/test-connection');
                               const res = await fetch('/api/test-connection', {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify(config)
                               });
+                              
+                              const contentType = res.headers.get("content-type");
+                              if (!res.ok) {
+                                  let errorMessage = `Erro HTTP: ${res.status}`;
+                                  if (contentType && contentType.indexOf("application/json") !== -1) {
+                                      const errorData = await res.json();
+                                      errorMessage = errorData.error || errorMessage;
+                                  } else {
+                                      const text = await res.text();
+                                      console.error('API Error Response:', text);
+                                      errorMessage += ' - Verifique o console para detalhes (possível 404/500)';
+                                  }
+                                  throw new Error(errorMessage);
+                              }
+
                               const data = await res.json();
                               if (data.status === 'success') alert('✅ ' + data.message);
                               else if (data.status === 'warning') alert('⚠️ ' + data.message);
                               else alert('❌ ' + (data.error || 'Erro desconhecido'));
-                          } catch (e) {
-                              console.error(e);
-                              alert('❌ Falha ao contactar servidor de integração.');
+                          } catch (e: any) {
+                              console.error('Erro de conexão:', e);
+                              alert(`❌ Falha na conexão: ${e.message}`);
                           }
                       }}
                       className="w-full py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors"
