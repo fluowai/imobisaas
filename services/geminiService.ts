@@ -2,8 +2,20 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Property, Lead } from "../types";
 
-// Use process.env.API_KEY directly for SDK initialization
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Lazy initialization para evitar crash quando API key não está disponível
+let ai: GoogleGenAI | null = null;
+
+const getAI = () => {
+  if (!ai) {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+    if (!apiKey) {
+      console.warn("⚠️ VITE_GEMINI_API_KEY não configurada - funcionalidades de IA desabilitadas");
+      return null;
+    }
+    ai = new GoogleGenAI({ apiKey });
+  }
+  return ai;
+};
 
 export const generateSmartDescription = async (property: Partial<Property>) => {
   const prompt = `Gere uma descrição atraente e profissional para um imóvel com as seguintes características:
@@ -16,9 +28,14 @@ export const generateSmartDescription = async (property: Partial<Property>) => {
     
     A descrição deve ser persuasiva, destacando os benefícios de morar no local e as qualidades do imóvel.`;
 
+  const client = getAI();
+  if (!client) {
+    return "Funcionalidade de IA não disponível. Configure VITE_GEMINI_API_KEY.";
+  }
+
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+    const response = await client.models.generateContent({
+      model: 'gemini-2.0-flash',
       contents: prompt,
       config: {
         systemInstruction: "Você é um mestre em copywriting imobiliário brasileiro.",
@@ -48,9 +65,14 @@ export const matchLeadWithProperties = async (lead: Lead, properties: Property[]
     
     Retorne uma justificativa para cada recomendação.`;
 
+  const client = getAI();
+  if (!client) {
+    return "Funcionalidade de IA não disponível. Configure VITE_GEMINI_API_KEY.";
+  }
+
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+    const response = await client.models.generateContent({
+      model: 'gemini-2.0-flash',
       contents: prompt,
       config: {
         systemInstruction: "Você é um consultor imobiliário experiente que foca em matching de alta conversão.",
