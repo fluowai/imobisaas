@@ -237,7 +237,7 @@ const PropertyManagement: React.FC = () => {
         </div>
       ) : (
         /* List View (Simplified) */
-        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr>

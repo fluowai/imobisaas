@@ -42,6 +42,7 @@ const LandingPage: React.FC = () => {
   const [isSubmittingLead, setIsSubmittingLead] = useState(false);
   const [leadForm, setLeadForm] = useState({ name: '', phone: '', email: '', subject: 'Interesse Geral' });
   const [leadSuccess, setLeadSuccess] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Property Submission State
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
@@ -158,8 +159,16 @@ const LandingPage: React.FC = () => {
       </div>
       {/* Navigation - Enhanced spacing and logo size */}
       <nav className="sticky top-0 z-50 border-b shadow-xl transition-all" style={{ backgroundColor: settings.headerColor || settings.secondaryColor, borderColor: `${settings.primaryColor}30`, color: getContrastColor(settings.headerColor || settings.secondaryColor) }}>
-        <div className="max-w-7xl mx-auto px-6 min-h-[128px] py-4 h-auto flex items-center justify-between">
-          <div className="flex items-center gap-16">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 min-h-[80px] md:min-h-[128px] py-3 md:py-4 h-auto flex items-center justify-between">
+          <div className="flex items-center gap-4 md:gap-16">
+            {/* Mobile Menu Button */}
+            <button 
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all"
+            >
+              <Menu size={22} />
+            </button>
+            
             <div 
               className="flex items-center gap-3 cursor-pointer group" 
               onClick={() => navigate('/')}
@@ -168,15 +177,15 @@ const LandingPage: React.FC = () => {
                 <img 
                   src={settings.logoUrl} 
                   alt={settings.agencyName} 
-                  className="transition-transform group-hover:scale-105"
-                  style={{ height: `${settings.logoHeight || 80}px`, width: 'auto', objectFit: 'contain' }}
+                  className="transition-transform group-hover:scale-105 max-h-[50px] md:max-h-none"
+                  style={{ height: `${Math.min(settings.logoHeight || 80, 50)}px`, width: 'auto', objectFit: 'contain' }}
                 />
               ) : (
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-2xl shadow-lg" style={{ backgroundColor: settings.primaryColor }}>
-                    <Home size={32} className="text-white" />
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="p-1.5 md:p-2 rounded-xl md:rounded-2xl shadow-lg" style={{ backgroundColor: settings.primaryColor }}>
+                    <Home size={24} className="text-white md:w-8 md:h-8" />
                   </div>
-                  <span className="text-3xl font-black tracking-tighter uppercase italic">ImobSaaS</span>
+                  <span className="text-xl md:text-3xl font-black tracking-tighter uppercase italic">ImobSaaS</span>
                 </div>
               )}
             </div>
@@ -188,17 +197,67 @@ const LandingPage: React.FC = () => {
             </div>
           </div>
           
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-2 md:gap-8">
             <button 
               onClick={() => { setLeadForm({ ...leadForm, subject: 'Contato Geral' }); setIsLeadModalOpen(true); }}
-              className="px-10 py-5 rounded-full font-black uppercase text-[11px] tracking-[0.3em] bg-white transition-all shadow-xl hover:scale-105 active:scale-95 border border-slate-100 flex items-center gap-3"
+              className="px-4 md:px-10 py-3 md:py-5 rounded-full font-black uppercase text-[9px] md:text-[11px] tracking-[0.2em] md:tracking-[0.3em] bg-white transition-all shadow-xl hover:scale-105 active:scale-95 border border-slate-100 flex items-center gap-2 md:gap-3"
               style={{ color: 'black' }}
             >
-              <MessageCircle size={18} style={{ color: settings.primaryColor }} /> Fale Conosco
+              <MessageCircle size={16} className="md:w-[18px] md:h-[18px]" style={{ color: settings.primaryColor }} />
+              <span className="hidden sm:inline">Fale Conosco</span>
+              <span className="sm:hidden">Contato</span>
             </button>
           </div>
         </div>
       </nav>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-[100] lg:hidden">
+          <div 
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <div className="absolute left-0 top-0 bottom-0 w-72 bg-black text-white flex flex-col animate-in slide-in-from-left duration-300">
+            <div className="p-6 border-b border-white/10 flex items-center justify-between">
+              <span className="text-xl font-black uppercase italic">Menu</span>
+              <button 
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <nav className="flex-1 p-6 space-y-2">
+              <button 
+                onClick={() => { navigate('/'); setMobileMenuOpen(false); }}
+                className="w-full text-left px-4 py-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all font-bold"
+              >
+                Todos os Imóveis
+              </button>
+              <button 
+                onClick={() => { setIsSubmitModalOpen(true); setMobileMenuOpen(false); }}
+                className="w-full text-left px-4 py-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all font-bold"
+              >
+                Anunciar Imóvel
+              </button>
+              <button 
+                onClick={() => { setLeadForm({ ...leadForm, subject: 'Sobre Nós' }); setIsLeadModalOpen(true); setMobileMenuOpen(false); }}
+                className="w-full text-left px-4 py-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all font-bold"
+              >
+                Sobre Nós
+              </button>
+              <button 
+                onClick={() => { setLeadForm({ ...leadForm, subject: 'Contato Geral' }); setIsLeadModalOpen(true); setMobileMenuOpen(false); }}
+                className="w-full text-left px-4 py-4 rounded-xl transition-all font-bold text-white"
+                style={{ backgroundColor: settings.primaryColor }}
+              >
+                Fale Conosco
+              </button>
+            </nav>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section - Inovare Style Overhaul */}
       <section className="relative h-[850px] flex items-center justify-center overflow-hidden">
@@ -218,14 +277,14 @@ const LandingPage: React.FC = () => {
               <span className="text-[11px] font-black uppercase text-white/80 tracking-[0.3em]">{settings.homeContent?.heroSubtitle || 'Líder em Negócios Rurais e Alto Padrão'}</span>
             </div>
             <h1 
-              className="font-black text-white mb-8 leading-[0.9] uppercase italic tracking-tighter" 
+              className="font-black text-white mb-8 leading-[0.9] uppercase italic tracking-tighter text-4xl md:text-6xl lg:text-7xl" 
               style={{ 
-                fontSize: `${settings.homeContent?.heroFontSize || 72}px`,
+                fontSize: settings.homeContent?.heroFontSize ? `clamp(40px, 5vw, ${settings.homeContent.heroFontSize}px)` : 'clamp(40px, 8vw, 96px)',
                 textShadow: '0 20px 50px rgba(0,0,0,0.5)' 
               }}
             >
               {settings.homeContent?.heroTitle?.split(' ')[0] || 'Terras'} que <br/>
-              <span className="px-4" style={{ color: settings.primaryColor, filter: 'brightness(1.2)' }}>{settings.homeContent?.heroTitle?.split(' ').slice(1).join(' ') || 'Prosperam'}</span>
+              <span className="px-2 md:px-4" style={{ color: settings.primaryColor, filter: 'brightness(1.2)' }}>{settings.homeContent?.heroTitle?.split(' ').slice(1).join(' ') || 'Prosperam'}</span>
             </h1>
             <p className="text-xl md:text-2xl text-white/60 max-w-2xl mx-auto font-medium leading-relaxed italic">
               Encontre o seu legado no campo com a curadoria mais exclusiva do Brasil.
@@ -235,24 +294,24 @@ const LandingPage: React.FC = () => {
           {/* Glassmorphism Search Panel - Tabbed RE-DESIGN */}
           <div className="w-full max-w-[1600px] flex flex-col gap-0 group/panel">
             {/* Upper Tabs (Smart, Advanced, Code) */}
-            <div className="flex gap-1 ml-8 relative z-10">
+            <div className="flex gap-1 md:ml-8 relative z-10 overflow-x-auto pb-2 md:pb-0 scrollbar-hide px-4 md:px-0">
               <button 
                 onClick={() => setSearchMode('smart')}
-                className={`px-8 py-4 rounded-t-3xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 border-t border-l border-r ${searchMode === 'smart' ? 'bg-white/[0.1] backdrop-blur-3xl text-white border-white/30' : 'bg-black/40 text-white/30 border-transparent hover:text-white/60'}`}
+                className={`px-6 md:px-8 py-3 md:py-4 rounded-t-3xl text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 border-t border-l border-r whitespace-nowrap flex-shrink-0 ${searchMode === 'smart' ? 'bg-white/[0.1] backdrop-blur-3xl text-white border-white/30' : 'bg-black/40 text-white/30 border-transparent hover:text-white/60'}`}
               >
                 <Sparkles size={14} style={{ color: searchMode === 'smart' ? settings.primaryColor : 'inherit' }} />
                 Busca Inteligente
               </button>
               <button 
                 onClick={() => setSearchMode('advanced')}
-                className={`px-8 py-4 rounded-t-3xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 border-t border-l border-r ${searchMode === 'advanced' ? 'bg-white/[0.1] backdrop-blur-3xl text-white border-white/30' : 'bg-black/40 text-white/30 border-transparent hover:text-white/60'}`}
+                className={`px-6 md:px-8 py-3 md:py-4 rounded-t-3xl text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 border-t border-l border-r whitespace-nowrap flex-shrink-0 ${searchMode === 'advanced' ? 'bg-white/[0.1] backdrop-blur-3xl text-white border-white/30' : 'bg-black/40 text-white/30 border-transparent hover:text-white/60'}`}
               >
                 <Layers size={14} style={{ color: searchMode === 'advanced' ? settings.primaryColor : 'inherit' }} />
                 Busca Avançada
               </button>
               <button 
                 onClick={() => setSearchMode('code')}
-                className={`px-8 py-4 rounded-t-3xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 border-t border-l border-r ${searchMode === 'code' ? 'bg-white/[0.1] backdrop-blur-3xl text-white border-white/30' : 'bg-black/40 text-white/30 border-transparent hover:text-white/60'}`}
+                className={`px-6 md:px-8 py-3 md:py-4 rounded-t-3xl text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 border-t border-l border-r whitespace-nowrap flex-shrink-0 ${searchMode === 'code' ? 'bg-white/[0.1] backdrop-blur-3xl text-white border-white/30' : 'bg-black/40 text-white/30 border-transparent hover:text-white/60'}`}
               >
                 <Terminal size={14} style={{ color: searchMode === 'code' ? settings.primaryColor : 'inherit' }} />
                 Por Código
@@ -260,7 +319,7 @@ const LandingPage: React.FC = () => {
             </div>
 
             {/* Main Panel Content */}
-            <div className="bg-white/[0.1] backdrop-blur-3xl border border-white/40 rounded-[4rem] rounded-tl-none p-10 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.7),0_0_50px_-12px_rgba(255,255,255,0.1)] relative overflow-hidden transition-all duration-500">
+            <div className="bg-white/[0.1] backdrop-blur-3xl border border-white/40 rounded-[2rem] md:rounded-[4rem] rounded-tl-none p-6 md:p-10 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.7),0_0_50px_-12px_rgba(255,255,255,0.1)] relative overflow-hidden transition-all duration-500">
               {/* Glow effect back */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none"></div>
 
@@ -402,8 +461,8 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* Social Proof Bar - Full Width Impact */}
-      <section className="relative z-20 py-12 px-6">
-        <div className="max-w-7xl mx-auto bg-white rounded-[3rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.15)] p-12 md:p-16 flex flex-col md:flex-row items-center justify-around gap-12 border-4" style={{ borderColor: `${settings.primaryColor}15`, backdropFilter: 'blur(20px)' }}>
+      <section className="relative z-20 py-8 md:py-12 px-4 md:px-6">
+        <div className="max-w-7xl mx-auto bg-white rounded-[2rem] md:rounded-[3rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.15)] p-8 md:p-16 flex flex-col md:flex-row items-center justify-around gap-8 md:gap-12 border-4" style={{ borderColor: `${settings.primaryColor}15`, backdropFilter: 'blur(20px)' }}>
            <div className="text-center group cursor-default">
               <span className="block text-5xl font-black mb-2 italic tracking-tighter transition-transform group-hover:scale-110" style={{ color: settings.secondaryColor }}>+1.5k</span>
               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-black/60">Imóveis Vendidos</span>
@@ -422,7 +481,7 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* Featured Listings */}
-      <section className="relative max-w-[1600px] mx-auto px-6 py-32">
+      <section className="relative max-w-[1600px] mx-auto px-4 md:px-6 py-16 md:py-32">
         {/* Floating Decorative Badge */}
         <div className="absolute -top-10 -right-10 w-40 h-40 bg-white rounded-full shadow-2xl border border-slate-50 flex flex-col items-center justify-center p-6 text-center rotate-12 group hover:rotate-0 transition-transform hidden xl:flex">
            <div className="w-12 h-12 rounded-full mb-2 flex items-center justify-center" style={{ backgroundColor: settings.primaryColor }}>
@@ -531,7 +590,7 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* Service Blocks Section - Inovare Inspired */}
-      <section className="py-32 px-6 bg-slate-50/50">
+      <section className="py-16 md:py-32 px-4 md:px-6 bg-slate-50/50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
             <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-4 block" style={{ color: settings.primaryColor }}>Soluções Exclusivas</span>
@@ -577,8 +636,8 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* About Us Section - Modern Blob Style */}
-      <section className="py-32 px-6 overflow-hidden">
-        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-24">
+      <section className="py-16 md:py-32 px-4 md:px-6 overflow-hidden">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-12 md:gap-24">
           <div className="flex-1 relative group">
             {/* Background Glow */}
             <div 
@@ -687,15 +746,15 @@ const LandingPage: React.FC = () => {
         </div>
         <button 
           onClick={() => window.open(`https://wa.me/${settings.contactPhone?.replace(/\D/g, '')}`, '_blank')}
-          className="w-20 h-20 rounded-full bg-green-500 text-white flex items-center justify-center shadow-[0_20px_50px_rgba(34,197,94,0.4)] hover:scale-110 active:scale-95 transition-all animate-bounce"
+          className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-green-500 text-white flex items-center justify-center shadow-[0_20px_50px_rgba(34,197,94,0.4)] hover:scale-110 active:scale-95 transition-all animate-bounce"
         >
-          <MessageCircle size={36} fill="white" />
+          <MessageCircle size={30} className="md:w-[36px] md:h-[36px]" fill="white" />
         </button>
       </div>
 
       {/* Footer */}
-      <footer className="py-32 px-6 border-t border-white/5" style={{ backgroundColor: settings.secondaryColor, color: getContrastColor(settings.secondaryColor) }}>
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-20">
+      <footer className="py-16 md:py-32 px-4 md:px-6 border-t border-white/5" style={{ backgroundColor: settings.secondaryColor, color: getContrastColor(settings.secondaryColor) }}>
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-20">
           <div className="col-span-1 md:col-span-1">
             <div className="mb-10">
                {settings.logoUrl ? (
