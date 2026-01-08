@@ -19,10 +19,12 @@ import {
   Copy
 } from 'lucide-react';
 import { MOCK_PROPERTIES } from '../constants';
-import { Property, PropertyType, PropertyStatus } from '../types';
+import { Property, PropertyType, PropertyStatus, PropertyPurpose, PropertyAptitude } from '../types';
 import { generateSmartDescription } from '../services/geminiService';
 import { uploadFile } from '../services/storage';
 import { propertyService } from '../services/properties';
+import { propertyAnalysisService } from '../services/propertyAnalysisService';
+import { PropertyAnalysisCard } from '../components/PropertyAnalysisCard';
 
 const PropertyEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -31,16 +33,32 @@ const PropertyEditor: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   
   const [formData, setFormData] = useState<Partial<Property>>({
     title: '',
     price: 0,
-    type: PropertyType.APARTMENT,
+    type: PropertyType.FAZENDA,
+    purpose: PropertyPurpose.SALE,
+    aptitude: [],
     status: PropertyStatus.AVAILABLE,
     description: '',
     descriptionDraft: '',
     location: { city: '', neighborhood: '', state: '', address: '' },
-    features: { bedrooms: 0, bathrooms: 0, area: 0, garages: 0 },
+    features: { 
+      areaHectares: 0,
+      areaAlqueires: 0,
+      casaSede: false,
+      caseiros: 0,
+      galpoes: 0,
+      currais: false,
+      tipoSolo: 'Misto',
+      usoAtual: [],
+      temGado: false,
+      capacidadeCabecas: 0,
+      fontesAgua: [],
+      percentualMata: 0
+    },
     images: []
   });
 
@@ -94,6 +112,30 @@ const PropertyEditor: React.FC = () => {
       setFormData(prev => ({ ...prev, descriptionDraft: desc }));
     }
     setAiGenerating(false);
+  };
+
+  const handleAnalyzeProperty = async () => {
+    if (!formData.location?.city || !formData.location?.state || !formData.features?.areaHectares) {
+       alert('Preencha pelo menos a Cidade, Estado e Área total (Hectares) para realizar a análise.');
+       return;
+    }
+    
+    try {
+       setAnalyzing(true);
+       const analysis = await propertyAnalysisService.analyzeProperty(
+          formData.location.city,
+          formData.location.state,
+          formData.features.areaHectares,
+          formData.features.tipoSolo || 'Misto'
+       );
+       
+       setFormData(prev => ({ ...prev, analysis }));
+    } catch (error) {
+       console.error("Erro na análise", error);
+       alert('Erro ao realizar análise. Verifique se a cidade e estado estão corretos.');
+    } finally {
+       setAnalyzing(false);
+    }
   };
 
   const applyDraft = () => {
@@ -162,14 +204,26 @@ const PropertyEditor: React.FC = () => {
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
               />
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Preço (R$)</label>
-              <input 
-                type="number" 
-                value={formData.price}
-                onChange={e => setFormData({...formData, price: Number(e.target.value)})}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-indigo-600"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Preço (R$)</label>
+                <input 
+                  type="number" 
+                  value={formData.price}
+                  onChange={e => setFormData({...formData, price: Number(e.target.value)})}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-indigo-600"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Finalidade</label>
+                <select 
+                  value={formData.purpose}
+                  onChange={e => setFormData({...formData, purpose: e.target.value as PropertyPurpose})}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
+                  {Object.values(PropertyPurpose).map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -242,48 +296,227 @@ const PropertyEditor: React.FC = () => {
           </div>
         </div>
 
-        {/* Seção 3: Características */}
+        {/* Seção 3: Características Rurais */}
         <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
           <div className="flex items-center gap-2 mb-6 text-indigo-600">
             <Home size={20} />
-            <h2 className="font-bold uppercase tracking-wider text-sm">Características</h2>
+            <h2 className="font-bold uppercase tracking-wider text-sm">Características Rurais</h2>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Quartos</label>
-              <input 
-                type="number" 
-                value={formData.features?.bedrooms}
-                onChange={e => setFormData({...formData, features: {...formData.features!, bedrooms: Number(e.target.value)}})}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-              />
+          
+          {/* Aptidão */}
+          <div className="mb-8">
+            <h3 className="text-sm font-bold text-slate-600 mb-4 uppercase tracking-wide">Aptidão e Vocação</h3>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {Object.values(PropertyAptitude).map((apt) => (
+                <label key={apt} className={`
+                  flex items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all
+                  ${formData.aptitude?.includes(apt) 
+                    ? 'bg-indigo-50 border-indigo-500 text-indigo-700 ring-1 ring-indigo-500' 
+                    : 'bg-slate-50 border-slate-200 hover:border-indigo-300 text-slate-600'}
+                `}>
+                  <input 
+                    type="checkbox"
+                    className="hidden"
+                    checked={formData.aptitude?.includes(apt)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setFormData(prev => ({ ...prev, aptitude: [...(prev.aptitude || []), apt] }));
+                      } else {
+                        setFormData(prev => ({ ...prev, aptitude: prev.aptitude?.filter(a => a !== apt) || [] }));
+                      }
+                    }}
+                  />
+                  <span className="text-sm font-semibold">{apt}</span>
+                </label>
+              ))}
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Banheiros</label>
-              <input 
-                type="number" 
-                value={formData.features?.bathrooms}
-                onChange={e => setFormData({...formData, features: {...formData.features!, bathrooms: Number(e.target.value)}})}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-              />
+          </div>
+          
+          {/* Área */}
+          <div className="mb-8">
+            <h3 className="text-sm font-bold text-slate-600 mb-4 uppercase tracking-wide">Área da Propriedade</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Hectares *</label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  value={formData.features?.areaHectares}
+                  onChange={e => setFormData({...formData, features: {...formData.features!, areaHectares: Number(e.target.value)}})}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="Ex: 50.5"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Alqueires (opcional)</label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  value={formData.features?.areaAlqueires || ''}
+                  onChange={e => setFormData({...formData, features: {...formData.features!, areaAlqueires: e.target.value ? Number(e.target.value) : undefined}})}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="Ex: 20.8"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Vagas</label>
-              <input 
-                type="number" 
-                value={formData.features?.garages}
-                onChange={e => setFormData({...formData, features: {...formData.features!, garages: Number(e.target.value)}})}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-              />
+          </div>
+
+          {/* Infraestrutura */}
+          <div className="mb-8">
+            <h3 className="text-sm font-bold text-slate-600 mb-4 uppercase tracking-wide">Infraestrutura</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="checkbox"
+                    checked={formData.features?.casaSede}
+                    onChange={e => setFormData({...formData, features: {...formData.features!, casaSede: e.target.checked}})}
+                    className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm font-semibold text-slate-700">Casa Sede</span>
+                </label>
+              </div>
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="checkbox"
+                    checked={formData.features?.currais}
+                    onChange={e => setFormData({...formData, features: {...formData.features!, currais: e.target.checked}})}
+                    className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm font-semibold text-slate-700">Currais</span>
+                </label>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Caseiros</label>
+                <input 
+                  type="number" 
+                  value={formData.features?.caseiros}
+                  onChange={e => setFormData({...formData, features: {...formData.features!, caseiros: Number(e.target.value)}})}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Galpões</label>
+                <input 
+                  type="number" 
+                  value={formData.features?.galpoes}
+                  onChange={e => setFormData({...formData, features: {...formData.features!, galpoes: Number(e.target.value)}})}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Área (m²)</label>
-              <input 
-                type="number" 
-                value={formData.features?.area}
-                onChange={e => setFormData({...formData, features: {...formData.features!, area: Number(e.target.value)}})}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-              />
+          </div>
+
+          {/* Solo e Uso */}
+          <div className="mb-8">
+            <h3 className="text-sm font-bold text-slate-600 mb-4 uppercase tracking-wide">Solo e Uso da Terra</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Tipo de Solo</label>
+                <select 
+                  value={formData.features?.tipoSolo}
+                  onChange={e => setFormData({...formData, features: {...formData.features!, tipoSolo: e.target.value}})}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
+                  <option value="Argiloso">Argiloso</option>
+                  <option value="Arenoso">Arenoso</option>
+                  <option value="Misto">Misto</option>
+                  <option value="Massapê">Massapê</option>
+                  <option value="Terra Roxa">Terra Roxa</option>
+                  <option value="Latossolo">Latossolo</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Uso Atual (múltipla escolha)</label>
+                <select 
+                  multiple
+                  value={formData.features?.usoAtual || []}
+                  onChange={e => {
+                    const selected = Array.from(e.target.selectedOptions, (option: HTMLOptionElement) => option.value);
+                    setFormData({...formData, features: {...formData.features!, usoAtual: selected}});
+                  }}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                  size={4}
+                >
+                  <option value="Pasto">Pasto</option>
+                  <option value="Agricultura">Agricultura</option>
+                  <option value="Reflorestamento">Reflorestamento</option>
+                  <option value="Silvicultura">Silvicultura</option>
+                  <option value="Fruticultura">Fruticultura</option>
+                  <option value="Preservação">Preservação</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Pecuária */}
+          <div className="mb-8">
+            <h3 className="text-sm font-bold text-slate-600 mb-4 uppercase tracking-wide">Pecuária</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="checkbox"
+                    checked={formData.features?.temGado}
+                    onChange={e => setFormData({...formData, features: {...formData.features!, temGado: e.target.checked}})}
+                    className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm font-semibold text-slate-700">Possui Gado</span>
+                </label>
+              </div>
+              {formData.features?.temGado && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Capacidade (cabeças)</label>
+                  <input 
+                    type="number" 
+                    value={formData.features?.capacidadeCabecas || ''}
+                    onChange={e => setFormData({...formData, features: {...formData.features!, capacidadeCabecas: e.target.value ? Number(e.target.value) : undefined}})}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                    placeholder="Ex: 500"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Recursos Naturais */}
+          <div>
+            <h3 className="text-sm font-bold text-slate-600 mb-4 uppercase tracking-wide">Recursos Naturais</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Fontes de Água (múltipla escolha)</label>
+                <select 
+                  multiple
+                  value={formData.features?.fontesAgua || []}
+                  onChange={e => {
+                    const selected = Array.from(e.target.selectedOptions, (option: HTMLOptionElement) => option.value);
+                    setFormData({...formData, features: {...formData.features!, fontesAgua: selected}});
+                  }}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                  size={4}
+                >
+                  <option value="Rio">Rio</option>
+                  <option value="Nascente">Nascente</option>
+                  <option value="Represa">Represa</option>
+                  <option value="Açude">Açude</option>
+                  <option value="Poço Artesiano">Poço Artesiano</option>
+                  <option value="Córrego">Córrego</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">% Mata Nativa/Preservação</label>
+                <input 
+                  type="number" 
+                  min="0"
+                  max="100"
+                  value={formData.features?.percentualMata || ''}
+                  onChange={e => setFormData({...formData, features: {...formData.features!, percentualMata: e.target.value ? Number(e.target.value) : undefined}})}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="Ex: 20"
+                />
+                <p className="text-xs text-slate-500 mt-1">Percentual de área preservada (0-100%)</p>
+              </div>
             </div>
           </div>
         </div>
@@ -358,7 +591,43 @@ const PropertyEditor: React.FC = () => {
           </div>
         </div>
 
-        {/* Seção 5: Mídia */}
+
+        {/* Seção 5: Análise Inteligente */}
+        <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-6">
+             <div className="flex items-center gap-2 text-indigo-600">
+                <Sparkles size={20} />
+                <h2 className="font-bold uppercase tracking-wider text-sm">Análise Inteligente (IA)</h2>
+             </div>
+             <button 
+               type="button"
+               onClick={handleAnalyzeProperty}
+               disabled={analyzing}
+               className="flex items-center gap-2 text-xs font-bold bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700 transition-colors disabled:opacity-50 shadow-lg shadow-indigo-100"
+             >
+               {analyzing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+               ANALISAR PROPRIEDADE
+             </button>
+          </div>
+
+          {!formData.analysis && (
+             <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <Sparkles className="mx-auto text-slate-300 mb-3" size={32} />
+                <h3 className="text-slate-900 font-bold mb-1">Descubra o potencial desta propriedade</h3>
+                <p className="text-sm text-slate-500 max-w-md mx-auto">
+                   Nossa IA analisa dados climáticos e de solo para gerar insights sobre aptidão agrícola e pecuária.
+                </p>
+             </div>
+          )}
+
+          {formData.analysis && (
+             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <PropertyAnalysisCard analysis={formData.analysis} />
+             </div>
+          )}
+        </div>
+
+        {/* Seção 6: Mídia */}
         <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
           <div className="flex items-center gap-2 mb-6 text-indigo-600">
             <ImageIcon size={20} />

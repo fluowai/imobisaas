@@ -5,6 +5,7 @@ import { leadService } from '../../services/leads';
 import { Lead } from '../../types';
 import { MessageCircle, Phone, Clock, FileCheck, CheckCircle2, XCircle, Search, Calendar, User, Home, Send } from 'lucide-react';
 import { useSettings } from '../../context/SettingsContext';
+import { supabase } from '../../services/supabase';
 
 const PIPELINE_STAGES = [
   { id: 'Novo', label: 'Novos', icon: MessageCircle, color: 'bg-blue-100 text-blue-700' },
@@ -151,17 +152,43 @@ const KanbanBoard: React.FC = () => {
                                                             e.stopPropagation();
                                                             if (!confirm(`Enviar mensagem de boas-vindas para ${lead.name}?`)) return;
                                                             try {
-                                                                const res = await fetch('http://localhost:3002/api/send-welcome', {
-                                                                    method: 'POST',
-                                                                    headers: { 'Content-Type': 'application/json' },
-                                                                    body: JSON.stringify({
-                                                                        name: lead.name,
-                                                                        phone: lead.phone,
-                                                                        propertyTitle: lead.property?.title || 'Imóvel'
-                                                                    })
+                                                                // Buscar configurações da Evolution API
+                                                                const { data: settingsData } = await supabase
+                                                                  .from('site_settings')
+                                                                  .select('integrations')
+                                                                  .single();
+
+                                                                if (!settingsData?.integrations?.evolutionApi?.enabled) {
+                                                                  alert('⚠️ Evolution API não está configurada ou está desativada');
+                                                                  return;
+                                                                }
+
+                                                                const config = settingsData.integrations.evolutionApi;
+                                                                
+                                                                // Formatar telefone
+                                                                const cleanPhone = lead.phone.replace(/\D/g, '');
+                                                                const formattedPhone = cleanPhone.length <= 11 ? `55${cleanPhone}` : cleanPhone;
+
+                                                                // Mensagem
+                                                                const propertyTitle = lead.property?.title || 'um de nossos imóveis';
+                                                                const message = `Olá, ${lead.name}! 👋\n\nRecebemos seu interesse em *${propertyTitle}*.\n\nNosso especialista já foi notificado e entrará em contato em breve para tirar suas dúvidas.\n\nEnquanto isso, salve nosso contato!`;
+
+                                                                // Enviar via Evolution API
+                                                                const apiUrl = `${config.baseUrl}/message/sendText/${config.instanceName}`;
+                                                                
+                                                                const res = await fetch(apiUrl, {
+                                                                  method: 'POST',
+                                                                  headers: {
+                                                                    'apikey': config.token,
+                                                                    'Content-Type': 'application/json'
+                                                                  },
+                                                                  body: JSON.stringify({
+                                                                    number: formattedPhone,
+                                                                    text: message
+                                                                  })
                                                                 });
-                                                                const data = await res.json();
-                                                                if (data.status === 'sent') {
+
+                                                                if (res.ok) {
                                                                     alert('✅ Mensagem enviada com sucesso! Movendo para "Em Atendimento"...');
                                                                     
                                                                     // Atualiza no Banco
@@ -171,15 +198,13 @@ const KanbanBoard: React.FC = () => {
                                                                     setLeads(prev => prev.map(l => 
                                                                         l.id === lead.id ? { ...l, status: 'Em Atendimento' } : l
                                                                     ));
-
-                                                                } else if (data.status === 'skipeed') {
-                                                                    alert('⚠️ Envio pulado: ' + data.reason);
                                                                 } else {
-                                                                    alert('❌ Erro: ' + (data.error || 'Desconhecido'));
+                                                                    const errorData = await res.json().catch(() => ({}));
+                                                                    alert('❌ Erro ao enviar: ' + (errorData.message || res.statusText));
                                                                 }
-                                                            } catch (err) {
+                                                            } catch (err: any) {
                                                                 console.error(err);
-                                                                alert('❌ Erro de conexão com servidor local.');
+                                                                alert('❌ Erro: ' + err.message);
                                                             }
                                                         }}
                                                         className="text-indigo-500 hover:bg-indigo-50 p-1.5 rounded-lg transition-colors"

@@ -26,15 +26,49 @@ export const leadService = {
     if (error) throw error;
     
     // --- TRIGGER WHATSAPP AUTOMATION (Async / Fire & Forget) ---
-    fetch('http://localhost:3002/api/send-welcome', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            name: lead.name,
-            phone: lead.phone,
-            propertyTitle: lead.property?.title || 'Imóvel'
-        })
-    }).catch(err => console.error('Failed to trigger WhatsApp webhook:', err));
+    (async () => {
+      try {
+        // Buscar configurações da Evolution API
+        const { data: settingsData } = await supabase
+          .from('site_settings')
+          .select('integrations')
+          .single();
+
+        if (!settingsData?.integrations?.evolutionApi?.enabled) {
+          console.log('⚠️ WhatsApp desativado nas configurações');
+          return;
+        }
+
+        const config = settingsData.integrations.evolutionApi;
+        
+        // Formatar telefone
+        const cleanPhone = lead.phone!.replace(/\D/g, '');
+        const formattedPhone = cleanPhone.length <= 11 ? `55${cleanPhone}` : cleanPhone;
+
+        // Mensagem
+        const propertyTitle = lead.property?.title || 'um de nossos imóveis';
+        const message = `Olá, ${lead.name}! 👋\n\nRecebemos seu interesse em *${propertyTitle}*.\n\nNosso especialista já foi notificado e entrará em contato em breve para tirar suas dúvidas.\n\nEnquanto isso, salve nosso contato!`;
+
+        // Enviar via Evolution API
+        const apiUrl = `${config.baseUrl}/message/sendText/${config.instanceName}`;
+        
+        await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'apikey': config.token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            number: formattedPhone,
+            text: message
+          })
+        });
+
+        console.log(`✅ WhatsApp enviado para ${lead.name}`);
+      } catch (err) {
+        console.error('❌ Erro ao enviar WhatsApp:', err);
+      }
+    })();
 
     return mapToModel(data);
   },

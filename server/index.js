@@ -7,6 +7,8 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { sendContactFormEmail } from './services/emailService.js';
+
 
 // Configuração de ambiente para ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -24,7 +26,7 @@ app.use((req, res, next) => {
 });
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error("❌ Erro: Credenciais do Supabase não encontradas no .env");
@@ -121,6 +123,111 @@ app.post('/api/send-welcome', async (req, res) => {
         res.status(200).json({ status: 'error', error: e.message });
     }
 });
+
+// --- CONTACT FORM ENDPOINT ---
+app.post('/api/contact', async (req, res) => {
+    const { name, email, phone, message } = req.body;
+    
+    // Validation
+    if (!name || !email || !phone || !message) {
+        return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
+    }
+    
+    try {
+        console.log(`📧 Novo contato recebido de: ${name} (${email})`);
+        
+        // 1. Get site settings for contact email and WhatsApp template
+        const { data: settingsData, error: settingsError } = await supabase
+            .from('site_settings')
+            .select('contact_email, contact_whatsapp_template, integrations')
+            .single();
+        
+        if (settingsError) {
+            console.error('❌ Erro ao buscar configurações:', settingsError);
+        }
+        
+        const contactEmail = settingsData?.contact_email || 'contato@okaimoveis.com.br';
+        const whatsappTemplate = settingsData?.contact_whatsapp_template || 
+            'Olá {name}! Recebemos seu contato através do formulário "Fale Conosco". Nossa equipe já está analisando sua mensagem e entrará em contato em breve. Obrigado!';
+        
+        // 2. Create lead in CRM
+        const { data: leadData, error: leadError } = await supabase
+            .from('crm_leads')
+            .insert([{
+                name,
+                email,
+                phone,
+                source: 'Fale Conosco',
+                status: 'Novo',
+                notes: message
+            }])
+            .select()
+            .single();
+        
+        if (leadError) {
+            console.error('❌ Erro ao criar lead:', JSON.stringify(leadError, null, 2));
+            throw new Error(`Erro ao salvar contato no CRM: ${leadError.message || JSON.stringify(leadError)}`);
+        }
+        
+        console.log(`✅ Lead criado com sucesso: ${leadData.id}`);
+        
+        // 3. Send email notification
+        try {
+            await sendContactFormEmail({ name, email, phone, message }, contactEmail);
+            console.log(`✅ Email de notificação enviado para ${contactEmail}`);
+        } catch (emailError) {
+            console.error('❌ Erro ao enviar email:', emailError.message);
+            // Continue even if email fails
+        }
+        
+        // 4. Send WhatsApp auto-reply
+        if (settingsData?.integrations?.evolutionApi?.enabled) {
+            try {
+                const config = settingsData.integrations.evolutionApi;
+                const cleanPhone = phone.replace(/\D/g, '');
+                const formattedPhone = cleanPhone.length <= 11 ? `55${cleanPhone}` : cleanPhone;
+                
+                // Replace template variables
+                const whatsappMessage = whatsappTemplate
+                    .replace(/{name}/g, name)
+                    .replace(/{email}/g, email)
+                    .replace(/{phone}/g, phone)
+                    .replace(/{message}/g, message);
+                
+                const apiUrl = `${config.baseUrl}/message/sendText/${config.instanceName}`;
+                
+                await axios.post(apiUrl, {
+                    number: formattedPhone,
+                    text: whatsappMessage
+                }, {
+                    headers: {
+                        'apikey': config.token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log(`✅ WhatsApp enviado para ${name}`);
+            } catch (whatsappError) {
+                console.error('❌ Erro ao enviar WhatsApp:', whatsappError.message);
+                // Continue even if WhatsApp fails
+            }
+        }
+        
+        // Return success
+        res.json({ 
+            success: true, 
+            message: 'Contato recebido com sucesso!',
+            leadId: leadData.id
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao processar contato:', error);
+        res.status(500).json({ 
+            error: 'Erro ao processar seu contato. Por favor, tente novamente.' 
+        });
+    }
+});
+
 
 // Endpoint de Migração
 app.post('/api/migrate', async (req, res) => {

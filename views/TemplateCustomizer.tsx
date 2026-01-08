@@ -19,11 +19,16 @@ import {
   Link as LinkIcon,
   MessageCircle,
   Maximize,
-  UserCircle
+  UserCircle,
+  Wand2,
+  Settings,
+  Code
 } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { SiteSettings } from '../types';
 import { uploadFile } from '../services/storage';
+import { LayoutEditorProvider } from '../context/LayoutEditorContext';
+import { LayoutEditor } from '../components/LayoutEditor/LayoutEditor';
 
 const getContrastColor = (hexcolor: string | undefined) => {
   if (!hexcolor) return 'white';
@@ -42,6 +47,7 @@ const TemplateCustomizer: React.FC = () => {
   const { settings: globalSettings, updateSettings } = useSettings();
   const [localSettings, setLocalSettings] = useState<SiteSettings>(globalSettings);
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<'basic' | 'visual' | 'custom' | 'contact'>('basic');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const brokerPhotoRef = useRef<HTMLInputElement>(null);
 
@@ -110,17 +116,231 @@ const TemplateCustomizer: React.FC = () => {
     { id: 'minimal', name: 'Minimalista', desc: 'Extremamente limpo, ideal para agências de luxo.' },
   ];
 
-  return (
-    <div className="flex h-[calc(100vh-120px)] gap-8">
-      {/* Editor Sidebar */}
-      <div className="w-80 bg-white rounded-3xl border border-slate-100 shadow-sm flex flex-col overflow-hidden">
-        <div className="p-6 border-b border-slate-50">
-          <h2 className="text-xl font-bold text-black flex items-center gap-2">
-            <Globe className="text-indigo-600" size={20} />
-            Configurações & Site
-          </h2>
-          <p className="text-sm text-black/60">Gerencie integrações e aparência.</p>
+  // Se estiver na aba visual, renderizar o editor completo
+  if (activeTab === 'visual') {
+    return (
+      <div className="h-[calc(100vh-120px)]">
+        {/* Tab Header */}
+        <div className="bg-white border-b border-slate-200 px-6 py-3">
+          <div className="flex items-center gap-2">
+            {[
+              { id: 'basic', label: 'Configurações Básicas', icon: Settings },
+              { id: 'visual', label: 'Editor Visual', icon: Wand2 },
+              { id: 'contact', label: '📧 Formulário de Contato', icon: Mail },
+              { id: 'custom', label: 'CSS/JS Customizado', icon: Code }
+            ].map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    activeTab === tab.id
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <Icon size={16} />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
+
+        {/* Visual Editor */}
+        <LayoutEditorProvider>
+          <LayoutEditor />
+        </LayoutEditorProvider>
+      </div>
+    );
+  }
+
+  // Contact Settings Tab
+  if (activeTab === 'contact') {
+    return (
+      <div className="flex flex-col h-[calc(100vh-120px)]">
+        {/* Tab Header */}
+        <div className="bg-white border-b border-slate-200 px-6 py-3 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            {[
+              { id: 'basic', label: 'Configurações Básicas', icon: Settings },
+              { id: 'visual', label: 'Editor Visual', icon: Wand2 },
+              { id: 'contact', label: '📧 Formulário de Contato', icon: Mail },
+              { id: 'custom', label: 'CSS/JS Customizado', icon: Code }
+            ].map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    activeTab === tab.id
+                      ? 'bg-green-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <Icon size={16} />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Contact Settings Content */}
+        <div className="flex-1 overflow-y-auto p-8 bg-gradient-to-br from-green-50 to-emerald-50">
+          <div className="max-w-4xl mx-auto space-y-8">
+            
+            {/* Header */}
+            <div className="text-center mb-12">
+              <div className="w-20 h-20 rounded-2xl bg-green-600 flex items-center justify-center mx-auto mb-6 shadow-xl">
+                <Mail size={40} className="text-white" />
+              </div>
+              <h1 className="text-4xl font-black text-green-900 mb-3">📧 Formulário de Contato</h1>
+              <p className="text-green-700 text-lg">Configure o email de destino e a mensagem automática do WhatsApp</p>
+            </div>
+
+            {/* Email Configuration */}
+            <div className="bg-white border-2 border-green-300 rounded-2xl p-8 shadow-xl">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-xl bg-green-600 flex items-center justify-center">
+                  <Mail size={24} className="text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-green-900">Email de Notificação</h2>
+                  <p className="text-sm text-green-700">Onde você receberá os contatos do formulário</p>
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-bold text-green-900 uppercase block mb-3">
+                  📬 Endereço de Email
+                </label>
+                <input 
+                  type="email" 
+                  placeholder="contato@suaempresa.com.br"
+                  value={localSettings.contactEmail || ''}
+                  onChange={(e) => setLocalSettings({
+                    ...localSettings,
+                    contactEmail: e.target.value
+                  })}
+                  className="w-full px-5 py-4 bg-white border-2 border-green-300 rounded-xl text-base focus:border-green-600 focus:ring-4 focus:ring-green-200 outline-none transition-all"
+                />
+                <p className="text-sm text-green-700 mt-3 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-green-600"></span>
+                  Todos os contatos enviados pelo formulário serão enviados para este email
+                </p>
+              </div>
+            </div>
+
+            {/* WhatsApp Configuration */}
+            <div className="bg-white border-2 border-green-300 rounded-2xl p-8 shadow-xl">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-xl bg-green-600 flex items-center justify-center">
+                  <MessageCircle size={24} className="text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-green-900">Mensagem WhatsApp Automática</h2>
+                  <p className="text-sm text-green-700">Resposta automática enviada para quem preencher o formulário</p>
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-bold text-green-900 uppercase block mb-3">
+                  💬 Template da Mensagem
+                </label>
+                <textarea 
+                  rows={6}
+                  placeholder="Olá {name}! Recebemos seu contato através do formulário 'Fale Conosco'. Nossa equipe já está analisando sua mensagem e entrará em contato em breve. Obrigado!"
+                  value={localSettings.contactWhatsappTemplate || ''}
+                  onChange={(e) => setLocalSettings({
+                    ...localSettings,
+                    contactWhatsappTemplate: e.target.value
+                  })}
+                  className="w-full px-5 py-4 bg-white border-2 border-green-300 rounded-xl text-base resize-none focus:border-green-600 focus:ring-4 focus:ring-green-200 outline-none transition-all font-mono"
+                />
+                
+                {/* Variables Guide */}
+                <div className="mt-6 bg-green-50 border-2 border-green-200 rounded-xl p-6">
+                  <h3 className="text-sm font-black text-green-900 mb-4 flex items-center gap-2">
+                    ✨ Variáveis Disponíveis
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm bg-green-600 text-white px-4 py-2 rounded-lg font-mono font-bold shadow-sm">{'{name}'}</span>
+                      <span className="text-sm text-green-800">Nome do contato</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm bg-green-600 text-white px-4 py-2 rounded-lg font-mono font-bold shadow-sm">{'{email}'}</span>
+                      <span className="text-sm text-green-800">Email do contato</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm bg-green-600 text-white px-4 py-2 rounded-lg font-mono font-bold shadow-sm">{'{phone}'}</span>
+                      <span className="text-sm text-green-800">Telefone do contato</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm bg-green-600 text-white px-4 py-2 rounded-lg font-mono font-bold shadow-sm">{'{message}'}</span>
+                      <span className="text-sm text-green-800">Mensagem enviada</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-green-700 mt-4 italic">
+                    💡 Dica: Use as variáveis entre chaves para personalizar a mensagem automaticamente
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="sticky bottom-0 bg-white border-2 border-green-300 rounded-2xl p-6 shadow-2xl">
+              <button 
+                onClick={handleSave}
+                disabled={saving}
+                className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-black text-lg flex items-center justify-center gap-3 transition-all disabled:opacity-50 shadow-lg hover:shadow-xl"
+              >
+                {saving ? <RefreshCw className="animate-spin" size={24} /> : <Save size={24} />}
+                {saving ? 'Salvando...' : 'Salvar Configurações'}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-120px)]">
+      {/* Tab Header */}
+      <div className="bg-white border-b border-slate-200 px-6 py-3 flex-shrink-0">
+        <div className="flex items-center gap-2">
+          {[
+            { id: 'basic', label: 'Configurações Básicas', icon: Settings },
+            { id: 'visual', label: 'Editor Visual', icon: Wand2 },
+            { id: 'contact', label: '📧 Formulário de Contato', icon: Mail },
+            { id: 'custom', label: 'CSS/JS Customizado', icon: Code }
+          ].map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === tab.id
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <Icon size={16} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex flex-1 gap-8 p-8 overflow-hidden">
 
         <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
           {/* Layout Selection */}
@@ -628,35 +848,33 @@ const TemplateCustomizer: React.FC = () => {
                               return;
                           }
                           try {
-                              // Use relative path for Vercel Serverless Function
-                              console.log('Testando conexão via /api/test-connection');
-                              const res = await fetch('/api/test-connection', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify(config)
+                              console.log('🔌 Testando conexão Evolution API...');
+                              
+                              // Em desenvolvimento, chamar a API diretamente
+                              const apiUrl = `${config.baseUrl}/instance/connectionState/${config.instanceName}`;
+                              
+                              const res = await fetch(apiUrl, {
+                                  method: 'GET',
+                                  headers: {
+                                      'apikey': config.token
+                                  }
                               });
                               
-                              const contentType = res.headers.get("content-type");
                               if (!res.ok) {
-                                  let errorMessage = `Erro HTTP: ${res.status}`;
-                                  if (contentType && contentType.indexOf("application/json") !== -1) {
-                                      const errorData = await res.json();
-                                      errorMessage = errorData.error || errorMessage;
-                                  } else {
-                                      const text = await res.text();
-                                      console.error('API Error Response:', text);
-                                      errorMessage += ' - Verifique o console para detalhes (possível 404/500)';
-                                  }
-                                  throw new Error(errorMessage);
+                                  throw new Error(`Erro HTTP: ${res.status} - Verifique a URL base, token e nome da instância`);
                               }
-
+                              
                               const data = await res.json();
-                              if (data.status === 'success') alert('✅ ' + data.message);
-                              else if (data.status === 'warning') alert('⚠️ ' + data.message);
-                              else alert('❌ ' + (data.error || 'Erro desconhecido'));
+                              const state = data?.instance?.state || data?.state;
+                              
+                              if (state === 'open' || state === 'connecting') {
+                                  alert(`✅ Conexão estabelecida com sucesso!\nEstado: ${state}`);
+                              } else {
+                                  alert(`⚠️ Instância encontrada, mas estado é: ${state || 'desconhecido'}`);
+                              }
                           } catch (e: any) {
-                              console.error('Erro de conexão:', e);
-                              alert(`❌ Falha na conexão: ${e.message}`);
+                              console.error('❌ Erro de conexão:', e);
+                              alert(`❌ Falha na conexão: ${e.message}\n\nVerifique:\n- URL base está correta\n- Token (apikey) está válido\n- Nome da instância existe`);
                           }
                       }}
                       className="w-full py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors"

@@ -27,8 +27,8 @@ export const extractColorsFromImage = (imageElement: HTMLImageElement): Promise<
           const secondary = rgbToHex(palette[1][0], palette[1][1], palette[1][2]);
           resolve({ primary, secondary });
         } else {
-          // Fallback se não detectar cores suficientes
-          resolve({ primary: '#4F46E5', secondary: '#1E293B' }); 
+          // Fallback - Cores da bandeira brasileira (logo FAZENDAS BRASIL)
+          resolve({ primary: '#FFD700', secondary: '#009B3A' }); // Amarelo/Ouro e Verde Brasil
         }
       } catch (error) {
         console.error("Erro ao extrair cores:", error);

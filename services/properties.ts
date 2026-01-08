@@ -1,6 +1,5 @@
-
 import { supabase } from './supabase';
-import { Property, PropertyType, PropertyStatus } from '../types';
+import { Property, PropertyType, PropertyStatus, PropertyPurpose, PropertyAptitude } from '../types';
 
 export const propertyService = {
   // Listar Imóveis
@@ -86,6 +85,8 @@ const mapToModel = (dbItem: any): Property => ({
   description: dbItem.description,
   price: dbItem.price,
   type: dbItem.type as PropertyType,
+  purpose: (dbItem.purpose as PropertyPurpose) || PropertyPurpose.SALE,
+  aptitude: (dbItem.aptitude as PropertyAptitude[]) || [],
   status: dbItem.status as PropertyStatus,
   location: {
     city: dbItem.city,
@@ -98,7 +99,8 @@ const mapToModel = (dbItem: any): Property => ({
   highlighted: dbItem.highlighted,
   ownerInfo: dbItem.owner_info,
   brokerId: dbItem.broker_id || '',
-  createdAt: dbItem.created_at
+  createdAt: dbItem.created_at,
+  analysis: dbItem.analysis
 });
 
 const mapToDatabase = (model: Partial<Property>): any => ({
@@ -106,6 +108,8 @@ const mapToDatabase = (model: Partial<Property>): any => ({
   description: model.description,
   price: model.price,
   type: model.type,
+  purpose: model.purpose,
+  aptitude: model.aptitude,
   status: model.status,
   // Flat location fields
   city: model.location?.city,
@@ -116,5 +120,6 @@ const mapToDatabase = (model: Partial<Property>): any => ({
   features: model.features,
   images: model.images,
   highlighted: model.highlighted,
-  owner_info: model.ownerInfo
+  owner_info: model.ownerInfo,
+  analysis: model.analysis
 });

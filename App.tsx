@@ -3,6 +3,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import LandingPage from './views/LandingPage';
+import PropertyListing from './views/PropertyListing';
 import AdminDashboard from './views/AdminDashboard';
 import PropertyDetail from './views/PropertyDetail';
 import PropertyManagement from './views/PropertyManagement';
@@ -58,6 +59,7 @@ const AppContent: React.FC = () => {
 
         {/* Public Portal Routes */}
         <Route path="/site" element={<LandingPage />} />
+        <Route path="/imoveis" element={<PropertyListing />} />
         <Route path="/property/:id" element={<PropertyDetail />} />
         
         {/* Redirect Root to Site (or Setup) */}

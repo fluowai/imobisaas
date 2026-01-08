@@ -7,6 +7,7 @@ let ai: GoogleGenAI | null = null;
 
 const getAI = () => {
   if (!ai) {
+    // @ts-ignore
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
     if (!apiKey) {
       console.warn("⚠️ VITE_GEMINI_API_KEY não configurada - funcionalidades de IA desabilitadas");
@@ -18,15 +19,16 @@ const getAI = () => {
 };
 
 export const generateSmartDescription = async (property: Partial<Property>) => {
-  const prompt = `Gere uma descrição atraente e profissional para um imóvel com as seguintes características:
+  const prompt = `Gere uma descrição atraente e profissional para um imóvel rural com as seguintes características:
     Tipo: ${property.type}
     Localização: ${property.location?.neighborhood}, ${property.location?.city}
-    Quartos: ${property.features?.bedrooms}
-    Banheiros: ${property.features?.bathrooms}
-    Área: ${property.features?.area}m²
-    Vagas: ${property.features?.garages}
+    Área: ${property.features?.areaHectares} hectares
+    Infraestrutura: ${property.features?.casaSede ? 'Possui Casa Sede' : ''}, ${property.features?.currais ? 'Possui Currais' : ''}
+    Galpões: ${property.features?.galpoes || 0}
+    Casas de Caseiro: ${property.features?.caseiros || 0}
+    Recursos Hídricos: ${property.features?.fontesAgua?.join(', ') || 'Não informado'}
     
-    A descrição deve ser persuasiva, destacando os benefícios de morar no local e as qualidades do imóvel.`;
+    A descrição deve ser persuasiva, destacando os diferenciais rurais e o potencial produtivo.`;
 
   const client = getAI();
   if (!client) {
@@ -82,5 +84,26 @@ export const matchLeadWithProperties = async (lead: Lead, properties: Property[]
   } catch (error) {
     console.error("Error matching lead:", error);
     return "Erro ao processar recomendações com IA.";
+  }
+};
+
+export const geminiService = {
+  generateText: async (prompt: string) => {
+    const client = getAI();
+    if (!client) return "{}";
+
+    try {
+      const response = await client.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: prompt,
+        config: {
+          temperature: 0.2, // Mais preciso para JSON
+        }
+      });
+      return response.text || "{}";
+    } catch (error) {
+      console.error("Error generating text:", error);
+      return "{}";
+    }
   }
 };

@@ -190,11 +190,21 @@ const PropertyDetail: React.FC = () => {
                   </div>
                   <div>
                     <span className="block text-[10px] font-bold text-black/40 uppercase tracking-widest mb-1">Área Total</span>
-                    <span className="font-bold text-slate-800">{property.features.area.toLocaleString('pt-BR')} m²</span>
+                    <span className="font-bold text-slate-800">{(property.features.areaHectares || 0).toLocaleString('pt-BR')} hectares</span>
+                  </div>
+                  {property.features.areaAlqueires && (
+                    <div>
+                      <span className="block text-[10px] font-bold text-black/40 uppercase tracking-widest mb-1">Alqueires</span>
+                      <span className="font-bold text-slate-800">{property.features.areaAlqueires.toLocaleString('pt-BR')}</span>
+                    </div>
+                  )}
+                  <div>
+                    <span className="block text-[10px] font-bold text-black/40 uppercase tracking-widest mb-1">Casa Sede</span>
+                    <span className="font-bold text-slate-800">{property.features.casaSede ? 'Sim' : 'Não'}</span>
                   </div>
                   <div>
-                    <span className="block text-[10px] font-bold text-black/40 uppercase tracking-widest mb-1">Quartos</span>
-                    <span className="font-bold text-slate-800">{property.features.bedrooms || '-'}</span>
+                    <span className="block text-[10px] font-bold text-black/40 uppercase tracking-widest mb-1">Tipo de Solo</span>
+                    <span className="font-bold text-slate-800">{property.features.tipoSolo}</span>
                   </div>
                   <div>
                     <span className="block text-[10px] font-bold text-black/40 uppercase tracking-widest mb-1">Estado</span>
@@ -204,6 +214,26 @@ const PropertyDetail: React.FC = () => {
                     <span className="block text-[10px] font-bold text-black/40 uppercase tracking-widest mb-1">Cidade</span>
                     <span className="font-bold text-slate-800">{property.location.city}</span>
                   </div>
+                  {property.features.temGado && (
+                    <div>
+                      <span className="block text-[10px] font-bold text-black/40 uppercase tracking-widest mb-1">Pecuária</span>
+                      <span className="font-bold text-slate-800">
+                        {property.features.capacidadeCabecas ? `${property.features.capacidadeCabecas} cabeças` : 'Sim'}
+                      </span>
+                    </div>
+                  )}
+                  {property.features.fontesAgua && property.features.fontesAgua.length > 0 && (
+                    <div className="md:col-span-2">
+                      <span className="block text-[10px] font-bold text-black/40 uppercase tracking-widest mb-1">Fontes de Água</span>
+                      <span className="font-bold text-slate-800">{property.features.fontesAgua.join(', ')}</span>
+                    </div>
+                  )}
+                  {property.features.usoAtual && property.features.usoAtual.length > 0 && (
+                    <div className="md:col-span-3">
+                      <span className="block text-[10px] font-bold text-black/40 uppercase tracking-widest mb-1">Uso Atual</span>
+                      <span className="font-bold text-slate-800">{property.features.usoAtual.join(', ')}</span>
+                    </div>
+                  )}
                   <div>
                     <span className="block text-[10px] font-bold text-black/40 uppercase tracking-widest mb-1">Código</span>
                     <span className="font-bold text-slate-800">#{property.id.slice(0,6)}</span>

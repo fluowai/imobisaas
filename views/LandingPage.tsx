@@ -1,13 +1,15 @@
 
 import React, { useState } from 'react';
-import { Search, MapPin, Maximize, ChevronRight, Home, Globe, Phone, Info, Mail, Instagram, Facebook, MessageCircle, Clock, Menu, X, CheckCircle2, DollarSign, Terminal, Layers, Sparkles, Plus, Trash2, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Search, MapPin, Maximize, ChevronRight, Home, Globe, Phone, Info, Mail, Instagram, Facebook, MessageCircle, Clock, Menu, X, CheckCircle2, DollarSign, Terminal, Layers, Sparkles, Plus, Trash2, Loader2, Bed, Bath, Youtube, Share2, Image as ImageIcon } from 'lucide-react';
 import { MOCK_PROPERTIES } from '../constants';
 import { Link, useNavigate } from 'react-router-dom';
-import { Property, PropertyType } from '../types';
+import { Property, PropertyType, PropertyPurpose, PropertyAptitude } from '../types';
 import { useSettings } from '../context/SettingsContext';
 import { propertyService } from '../services/properties';
 import { leadService } from '../services/leads';
 import { uploadFile } from '../services/storage';
+import SiteHeader from '../components/SiteHeader';
+import ContactForm from '../components/ContactForm';
 
 // Helper to determine text color based on background luminance
 const getContrastColor = (hexcolor: string | undefined) => {
@@ -24,14 +26,12 @@ const DotGrid: React.FC<{ className?: string }> = ({ className }) => (
 );
 
 const LandingPage: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchPurpose, setSearchPurpose] = useState<'Comprar' | 'Alugar'>('Comprar');
-  const [searchType, setSearchType] = useState('Todos os Tipos');
-  const [searchNeighborhood, setSearchNeighborhood] = useState('Todos os Bairros');
-  const [searchCity, setSearchCity] = useState('');
-  const [searchMaxPrice, setSearchMaxPrice] = useState('');
-  const [searchCode, setSearchCode] = useState('');
-  const [searchMode, setSearchMode] = useState<'smart' | 'advanced' | 'code'>('smart');
+  // Rural Property Search Filters
+  const [propertyType, setPropertyType] = useState<string>('');
+  const [city, setCity] = useState('');
+  const [minHectares, setMinHectares] = useState('');
+  const [maxHectares, setMaxHectares] = useState('');
+  const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const navigate = useNavigate();
   const { settings } = useSettings();
   const [properties, setProperties] = useState<Property[]>([]);
@@ -52,9 +52,21 @@ const LandingPage: React.FC = () => {
   const [propertyForm, setPropertyForm] = useState<Partial<Property>>({
     title: '',
     price: 0,
-    type: PropertyType.HOUSE,
+    type: PropertyType.FAZENDA,
     location: { city: '', neighborhood: '', state: '', address: '' },
-    features: { bedrooms: 0, bathrooms: 0, area: 0, garages: 0 },
+    features: { 
+      areaHectares: 0,
+      areaAlqueires: 0,
+      casaSede: false,
+      caseiros: 0,
+      galpoes: 0,
+      currais: false,
+      tipoSolo: 'Misto',
+      usoAtual: [],
+      temGado: false,
+      fontesAgua: [],
+      percentualMata: 0
+    },
     images: [],
     ownerInfo: { name: '', email: '', phone: '' }
   });
@@ -70,9 +82,21 @@ const LandingPage: React.FC = () => {
         setIsSubmitModalOpen(false);
         setSubmitSuccess(false);
         setPropertyForm({
-          title: '', price: 0, type: PropertyType.HOUSE,
+          title: '', price: 0, type: PropertyType.FAZENDA,
           location: { city: '', neighborhood: '', state: '', address: '' },
-          features: { bedrooms: 0, bathrooms: 0, area: 0, garages: 0 },
+          features: { 
+            areaHectares: 0,
+            areaAlqueires: 0,
+            casaSede: false,
+            caseiros: 0,
+            galpoes: 0,
+            currais: false,
+            tipoSolo: 'Misto',
+            usoAtual: [],
+            temGado: false,
+            fontesAgua: [],
+            percentualMata: 0
+          },
           images: [],
           ownerInfo: { name: '', email: '', phone: '' }
         });
@@ -126,13 +150,17 @@ const LandingPage: React.FC = () => {
     }
   };
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 9;
+
   React.useEffect(() => {
     const loadProperties = async () => {
       try {
         setLoading(true);
-        // Em um sistema real, você filtraria por "highlighted" ou paginação
+        // Fetch all properties (no slicing)
         const data = await propertyService.list();
-        setProperties(data.slice(0, 6)); // Pegando os 6 mais recentes
+        setProperties(data);
       } catch (error) {
         console.error("Erro ao carregar imóveis da home", error);
       } finally {
@@ -141,6 +169,50 @@ const LandingPage: React.FC = () => {
     };
     loadProperties();
   }, []);
+
+  // Apply filters
+  React.useEffect(() => {
+    let filtered = properties;
+    
+    if (propertyType) {
+      filtered = filtered.filter(p => p.type === propertyType);
+    }
+    
+    if (city) {
+      filtered = filtered.filter(p => 
+        p.location?.city?.toLowerCase().includes(city.toLowerCase())
+      );
+    }
+    
+    if (minHectares) {
+      filtered = filtered.filter(p => 
+        (p.features?.areaHectares || 0) >= parseFloat(minHectares)
+      );
+    }
+    
+    if (maxHectares) {
+      filtered = filtered.filter(p => 
+        (p.features?.areaHectares || 0) <= parseFloat(maxHectares)
+      );
+    }
+    
+    setFilteredProperties(filtered);
+  }, [properties, propertyType, city, minHectares, maxHectares]);
+
+  // Pagination Logic
+  const displayProperties = filteredProperties.length > 0 ? filteredProperties : properties;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentProperties = displayProperties.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(displayProperties.length / itemsPerPage);
+
+  const nextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  const prevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
 
   return (
     <div className="min-h-screen bg-white relative overflow-hidden" style={{ fontFamily: '"Poppins", sans-serif', fontSize: '16px' }}>
@@ -155,333 +227,190 @@ const LandingPage: React.FC = () => {
         <span className="text-[11px] font-black uppercase tracking-[1.2em] opacity-60 whitespace-nowrap" style={{ color: settings.secondaryColor }}>Exclusividade & Tradição</span>
       </div>
       <div className="fixed right-6 top-1/2 -translate-y-1/2 origin-top-right rotate-90 pointer-events-none hidden xl:block">
-        <span className="text-[11px] font-black uppercase tracking-[1.2em] opacity-60 whitespace-nowrap" style={{ color: settings.secondaryColor }}>Fazendas Brasil Select</span>
+        <span className="text-[11px] font-black uppercase tracking-[1.2em] opacity-60 whitespace-nowrap" style={{ color: settings.secondaryColor }}>Luxury Urban Living</span>
       </div>
-      {/* Navigation - Enhanced spacing and logo size */}
-      <nav className="sticky top-0 z-50 border-b shadow-xl transition-all" style={{ backgroundColor: settings.headerColor || settings.secondaryColor, borderColor: `${settings.primaryColor}30`, color: getContrastColor(settings.headerColor || settings.secondaryColor) }}>
-        <div className="max-w-7xl mx-auto px-4 md:px-6 min-h-[80px] md:min-h-[128px] py-3 md:py-4 h-auto flex items-center justify-between">
-          <div className="flex items-center gap-4 md:gap-16">
-            {/* Mobile Menu Button */}
-            <button 
-              onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all"
-            >
-              <Menu size={22} />
-            </button>
-            
-            <div 
-              className="flex items-center gap-3 cursor-pointer group" 
-              onClick={() => navigate('/')}
-            >
-              {settings.logoUrl ? (
-                <img 
-                  src={settings.logoUrl} 
-                  alt={settings.agencyName} 
-                  className="transition-transform group-hover:scale-105 max-h-[50px] md:max-h-none"
-                  style={{ height: `${Math.min(settings.logoHeight || 80, 50)}px`, width: 'auto', objectFit: 'contain' }}
-                />
-              ) : (
-                <div className="flex items-center gap-2 md:gap-3">
-                  <div className="p-1.5 md:p-2 rounded-xl md:rounded-2xl shadow-lg" style={{ backgroundColor: settings.primaryColor }}>
-                    <Home size={24} className="text-white md:w-8 md:h-8" />
-                  </div>
-                  <span className="text-xl md:text-3xl font-black tracking-tighter uppercase italic">ImobSaaS</span>
-                </div>
-              )}
-            </div>
-            
-            <div className="hidden lg:flex gap-10 items-center">
-              <button onClick={() => navigate('/')} className="text-base font-black uppercase tracking-[0.2em] opacity-80 hover:opacity-100 transition-opacity border-b-2 border-transparent hover:border-current py-1 whitespace-nowrap">Todos os Imóveis</button>
-              <button onClick={() => setIsSubmitModalOpen(true)} className="text-base font-black uppercase tracking-[0.2em] opacity-80 hover:opacity-100 transition-opacity border-b-2 border-transparent hover:border-current py-1 whitespace-nowrap">Anunciar Imóvel</button>
-              <button onClick={() => { setLeadForm({ ...leadForm, subject: 'Sobre Nós' }); setIsLeadModalOpen(true); }} className="text-base font-black uppercase tracking-[0.2em] opacity-80 hover:opacity-100 transition-opacity border-b-2 border-transparent hover:border-current py-1 whitespace-nowrap">Sobre Nós</button>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2 md:gap-8">
-            <button 
-              onClick={() => { setLeadForm({ ...leadForm, subject: 'Contato Geral' }); setIsLeadModalOpen(true); }}
-              className="px-4 md:px-10 py-3 md:py-5 rounded-full font-black uppercase text-[9px] md:text-[11px] tracking-[0.2em] md:tracking-[0.3em] bg-white transition-all shadow-xl hover:scale-105 active:scale-95 border border-slate-100 flex items-center gap-2 md:gap-3"
-              style={{ color: 'black' }}
-            >
-              <MessageCircle size={16} className="md:w-[18px] md:h-[18px]" style={{ color: settings.primaryColor }} />
-              <span className="hidden sm:inline">Fale Conosco</span>
-              <span className="sm:hidden">Contato</span>
-            </button>
-          </div>
-        </div>
-      </nav>
+      <SiteHeader />
 
-      {/* Mobile Menu Overlay */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-[100] lg:hidden">
-          <div 
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-          <div className="absolute left-0 top-0 bottom-0 w-72 bg-black text-white flex flex-col animate-in slide-in-from-left duration-300">
-            <div className="p-6 border-b border-white/10 flex items-center justify-between">
-              <span className="text-xl font-black uppercase italic">Menu</span>
-              <button 
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <nav className="flex-1 p-6 space-y-2">
-              <button 
-                onClick={() => { navigate('/'); setMobileMenuOpen(false); }}
-                className="w-full text-left px-4 py-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all font-bold"
-              >
-                Todos os Imóveis
-              </button>
-              <button 
-                onClick={() => { setIsSubmitModalOpen(true); setMobileMenuOpen(false); }}
-                className="w-full text-left px-4 py-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all font-bold"
-              >
-                Anunciar Imóvel
-              </button>
-              <button 
-                onClick={() => { setLeadForm({ ...leadForm, subject: 'Sobre Nós' }); setIsLeadModalOpen(true); setMobileMenuOpen(false); }}
-                className="w-full text-left px-4 py-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all font-bold"
-              >
-                Sobre Nós
-              </button>
-              <button 
-                onClick={() => { setLeadForm({ ...leadForm, subject: 'Contato Geral' }); setIsLeadModalOpen(true); setMobileMenuOpen(false); }}
-                className="w-full text-left px-4 py-4 rounded-xl transition-all font-bold text-white"
-                style={{ backgroundColor: settings.primaryColor }}
-              >
-                Fale Conosco
-              </button>
-            </nav>
-          </div>
-        </div>
-      )}
-
-      {/* Hero Section - Inovare Style Overhaul */}
-      <section className="relative h-[850px] flex items-center justify-center overflow-hidden">
+      {/* Hero Section - Rural Property Focus */}
+      <section className="relative h-[700px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
           <img 
             src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1920&q=80" 
-            alt="Hero Rural" 
-            className="w-full h-full object-cover brightness-[0.4]"
+            alt="Hero Rural Property" 
+            className="w-full h-full object-cover brightness-[0.6]"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80"></div>
+          {/* Green/Nature Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-transparent to-black/60"></div>
+          <div className="absolute inset-0 bg-[#0f172a]/30 mix-blend-overlay"></div>
         </div>
         
         <div className="relative z-10 max-w-7xl w-full px-6 flex flex-col items-center">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-8 transform hover:scale-105 transition-all cursor-default">
-              <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: settings.primaryColor }}></span>
-              <span className="text-[11px] font-black uppercase text-white/80 tracking-[0.3em]">{settings.homeContent?.heroSubtitle || 'Líder em Negócios Rurais e Alto Padrão'}</span>
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-8 shadow-2xl">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+              <span className="text-[10px] font-black uppercase text-white/90 tracking-[0.3em] font-sans">Terras Produtivas & Investimento Rural</span>
             </div>
             <h1 
-              className="font-black text-white mb-8 leading-[0.9] uppercase italic tracking-tighter text-4xl md:text-6xl lg:text-7xl" 
+              className="font-black text-white mb-6 leading-[0.85] uppercase italic tracking-tighter" 
               style={{ 
-                fontSize: settings.homeContent?.heroFontSize ? `clamp(40px, 5vw, ${settings.homeContent.heroFontSize}px)` : 'clamp(40px, 8vw, 96px)',
-                textShadow: '0 20px 50px rgba(0,0,0,0.5)' 
+                fontSize: 'clamp(60px, 9vw, 110px)',
+                textShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                fontFamily: 'Playfair Display, serif'
               }}
             >
-              {settings.homeContent?.heroTitle?.split(' ')[0] || 'Terras'} que <br/>
-              <span className="px-2 md:px-4" style={{ color: settings.primaryColor, filter: 'brightness(1.2)' }}>{settings.homeContent?.heroTitle?.split(' ').slice(1).join(' ') || 'Prosperam'}</span>
+              <div className="block" style={{ transform: 'skewX(-5deg)' }}>TERRA</div>
+              <div className="block text-transparent bg-clip-text bg-gradient-to-b from-green-200 to-green-500" style={{ transform: 'skewX(-5deg)' }}>PRODUTIVA</div>
             </h1>
-            <p className="text-xl md:text-2xl text-white/60 max-w-2xl mx-auto font-medium leading-relaxed italic">
-              Encontre o seu legado no campo com a curadoria mais exclusiva do Brasil.
+            <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto font-medium leading-relaxed italic drop-shadow-md font-serif">
+              Fazendas, sítios e propriedades rurais de alto valor. <br className="hidden md:block"/> Seu investimento no agronegócio começa aqui.
             </p>
           </div>
 
-          {/* Glassmorphism Search Panel - Tabbed RE-DESIGN */}
-          <div className="w-full max-w-[1600px] flex flex-col gap-0 group/panel">
-            {/* Upper Tabs (Smart, Advanced, Code) */}
-            <div className="flex gap-1 md:ml-8 relative z-10 overflow-x-auto pb-2 md:pb-0 scrollbar-hide px-4 md:px-0">
-              <button 
-                onClick={() => setSearchMode('smart')}
-                className={`px-6 md:px-8 py-3 md:py-4 rounded-t-3xl text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 border-t border-l border-r whitespace-nowrap flex-shrink-0 ${searchMode === 'smart' ? 'bg-white/[0.1] backdrop-blur-3xl text-white border-white/30' : 'bg-black/40 text-white/30 border-transparent hover:text-white/60'}`}
-              >
-                <Sparkles size={14} style={{ color: searchMode === 'smart' ? settings.primaryColor : 'inherit' }} />
-                Busca Inteligente
-              </button>
-              <button 
-                onClick={() => setSearchMode('advanced')}
-                className={`px-6 md:px-8 py-3 md:py-4 rounded-t-3xl text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 border-t border-l border-r whitespace-nowrap flex-shrink-0 ${searchMode === 'advanced' ? 'bg-white/[0.1] backdrop-blur-3xl text-white border-white/30' : 'bg-black/40 text-white/30 border-transparent hover:text-white/60'}`}
-              >
-                <Layers size={14} style={{ color: searchMode === 'advanced' ? settings.primaryColor : 'inherit' }} />
-                Busca Avançada
-              </button>
-              <button 
-                onClick={() => setSearchMode('code')}
-                className={`px-6 md:px-8 py-3 md:py-4 rounded-t-3xl text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 border-t border-l border-r whitespace-nowrap flex-shrink-0 ${searchMode === 'code' ? 'bg-white/[0.1] backdrop-blur-3xl text-white border-white/30' : 'bg-black/40 text-white/30 border-transparent hover:text-white/60'}`}
-              >
-                <Terminal size={14} style={{ color: searchMode === 'code' ? settings.primaryColor : 'inherit' }} />
-                Por Código
-              </button>
-            </div>
-
-            {/* Main Panel Content */}
-            <div className="bg-white/[0.1] backdrop-blur-3xl border border-white/40 rounded-[2rem] md:rounded-[4rem] rounded-tl-none p-6 md:p-10 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.7),0_0_50px_-12px_rgba(255,255,255,0.1)] relative overflow-hidden transition-all duration-500">
-              {/* Glow effect back */}
-              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none"></div>
-
-              <div className="relative z-10 flex flex-col gap-8">
-                {/* Finalidade Toggle (Inside the panel now for better context) */}
-                <div className="flex items-center justify-between border-b border-white/10 pb-6">
-                  <div className="flex gap-2 p-1 bg-black/40 rounded-full border border-white/5">
-                    <button 
-                      onClick={() => setSearchPurpose('Comprar')}
-                      className={`px-8 py-2.5 rounded-full text-[9px] font-black uppercase tracking-[0.1em] transition-all ${searchPurpose === 'Comprar' ? 'bg-white shadow-xl scale-105' : 'text-white/30 hover:text-white/60'}`}
-                      style={{ color: searchPurpose === 'Comprar' ? 'black' : 'white' }}
-                    >
-                      Comprar
-                    </button>
-                    <button 
-                      onClick={() => setSearchPurpose('Alugar')}
-                      className={`px-8 py-2.5 rounded-full text-[9px] font-black uppercase tracking-[0.1em] transition-all ${searchPurpose === 'Alugar' ? 'bg-white shadow-xl scale-105' : 'text-white/30 hover:text-white/60'}`}
-                      style={{ color: searchPurpose === 'Alugar' ? 'black' : 'white' }}
-                    >
-                      Alugar
-                    </button>
-                  </div>
-                  <div className="hidden md:flex gap-4 items-center opacity-40 text-[9px] font-bold uppercase tracking-widest text-white italic">
-                    <span>Curadoria Exclusiva</span>
-                    <div className="w-1 h-1 rounded-full bg-white"></div>
-                    <span>Ativos Selecionados</span>
-                  </div>
+          {/* Full-Width Search Panel */}
+          <div className="w-full max-w-[1600px]">
+            <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 md:p-10">
+              
+              {/* Filters Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                
+                {/* Filter 1: Property Type */}
+                <div className="relative">
+                  <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 block">
+                    Tipo
+                  </label>
+                  <select
+                    value={propertyType}
+                    onChange={(e) => setPropertyType(e.target.value)}
+                    className="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium outline-none focus:border-green-500 focus:bg-white transition-all"
+                  >
+                    <option value="">Todos</option>
+                    <option value="Fazenda">Fazenda</option>
+                    <option value="Sítio">Sítio</option>
+                    <option value="Chácara">Chácara</option>
+                  </select>
                 </div>
 
-                {/* Conditional Rendering Based on Mode */}
-                {searchMode === 'smart' && (
-                  <div className="flex flex-col md:flex-row gap-4 items-center">
-                    <div className="flex-1 w-full relative group/field bg-white/[0.03] hover:bg-white/[0.08] transition-all duration-300 rounded-[2.5rem] p-6 px-10 border border-white/5 focus-within:border-white/20 shadow-inner">
-                      <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                        <Sparkles size={12} style={{ color: settings.primaryColor }} /> O que você está procurando?
-                      </p>
-                      <input 
-                        type="text"
-                        placeholder="Ex: Fazenda de soja em Sorriso com mais de 2000 hectares..."
-                        className="bg-transparent text-white text-base font-medium w-full outline-none placeholder:text-white/20 tracking-wide"
-                        value={searchCity}
-                        onChange={(e) => setSearchCity(e.target.value)}
-                      />
-                    </div>
-                    <button 
-                      className="w-full md:w-auto bg-white hover:brightness-90 transition-all duration-500 rounded-[2.5rem] px-12 py-6 flex items-center justify-center gap-4 group/btn shadow-[0_20px_40px_-10px_rgba(255,255,255,0.2)] hover:-translate-y-1 active:scale-95"
-                      onClick={() => navigate('/properties')}
-                    >
-                      <Search size={24} className="text-black group-hover/btn:scale-110 transition-transform" />
-                      <span className="text-black font-black text-[12px] uppercase tracking-[0.2em]">Buscar Agora</span>
-                    </button>
-                  </div>
-                )}
+                {/* Filter 2: City */}
+                <div className="relative">
+                  <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 block">
+                    Cidade
+                  </label>
+                  <input
+                    type="text"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="Ex: São Paulo"
+                    className="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium outline-none focus:border-green-500 focus:bg-white transition-all placeholder:text-slate-300"
+                  />
+                </div>
 
-                {searchMode === 'advanced' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end animate-in fade-in slide-in-from-bottom-2 duration-500">
-                    <div className="relative group/field bg-white/[0.03] hover:bg-white/[0.08] transition-all duration-300 rounded-[2.5rem] p-5 px-8 border border-white/5">
-                      <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                        <MapPin size={11} style={{ color: settings.primaryColor }} /> Cidade
-                      </p>
-                      <input 
-                        type="text"
-                        placeholder="Qual cidade?"
-                        className="bg-transparent text-white text-xs font-black w-full outline-none placeholder:text-white/20 uppercase tracking-widest"
-                        value={searchCity}
-                        onChange={(e) => setSearchCity(e.target.value)}
-                      />
-                    </div>
-                    <div className="relative group/field bg-white/[0.03] hover:bg-white/[0.08] transition-all duration-300 rounded-[2.5rem] p-5 px-8 border border-white/5">
-                      <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                        <Home size={11} style={{ color: settings.primaryColor }} /> Tipo
-                      </p>
-                      <select 
-                        className="bg-transparent text-white text-xs font-black w-full outline-none appearance-none cursor-pointer uppercase tracking-widest"
-                        value={searchType}
-                        onChange={(e) => setSearchType(e.target.value)}
-                      >
-                        <option className="bg-slate-900" value="Todos">Todos os Tipos</option>
-                        <option className="bg-slate-900" value="Fazenda">Fazendas</option>
-                        <option className="bg-slate-900" value="Sítio">Sítios</option>
-                      </select>
-                    </div>
-                    <div className="relative group/field bg-white/[0.03] hover:bg-white/[0.08] transition-all duration-300 rounded-[2.5rem] p-5 px-8 border border-white/5">
-                      <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                        <DollarSign size={11} style={{ color: settings.primaryColor }} /> Valor Máximo
-                      </p>
-                      <select 
-                        className="bg-transparent text-white text-xs font-black w-full outline-none appearance-none cursor-pointer uppercase tracking-widest"
-                        value={searchMaxPrice}
-                        onChange={(e) => setSearchMaxPrice(e.target.value)}
-                      >
-                        <option className="bg-slate-900" value="">Qualquer Valor</option>
-                        <option className="bg-slate-900" value="5000000">Até R$ 5 Mi</option>
-                        <option className="bg-slate-900" value="10000000">Até R$ 10 Mi</option>
-                      </select>
-                    </div>
-                    <button 
-                      className="bg-white hover:brightness-95 transition-all duration-500 rounded-[2.5rem] p-5 flex items-center justify-center gap-3 group/btn shadow-xl hover:-translate-y-0.5 active:scale-95"
-                      onClick={() => navigate('/properties')}
-                    >
-                      <Search size={20} className="text-black" />
-                      <span className="text-black font-black text-[10px] uppercase tracking-[0.2em]">Filtrar</span>
-                    </button>
-                  </div>
-                )}
+                {/* Filter 3: Min Hectares */}
+                <div className="relative">
+                  <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 block">
+                    Área Mín (ha)
+                  </label>
+                  <input
+                    type="number"
+                    value={minHectares}
+                    onChange={(e) => setMinHectares(e.target.value)}
+                    placeholder="0"
+                    className="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium outline-none focus:border-green-500 focus:bg-white transition-all placeholder:text-slate-300"
+                  />
+                </div>
 
-                {searchMode === 'code' && (
-                  <div className="flex gap-4 max-w-2xl animate-in fade-in slide-in-from-bottom-2 duration-500">
-                    <div className="flex-1 relative group/field bg-white/[0.03] hover:bg-white/[0.08] transition-all duration-300 rounded-[2.5rem] p-6 px-10 border border-white/5 focus-within:border-white/20 shadow-inner">
-                      <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                        <Terminal size={12} style={{ color: settings.primaryColor }} /> Código do Imóvel
-                      </p>
-                      <input 
-                        type="text"
-                        placeholder="Ex: FZ-1234"
-                        className="bg-transparent text-white text-xl font-mono font-bold w-full outline-none placeholder:text-white/20 uppercase tracking-[0.3em]"
-                        value={searchCode}
-                        onChange={(e) => setSearchCode(e.target.value)}
-                      />
-                    </div>
-                    <button 
-                      className="bg-white hover:brightness-95 transition-all duration-500 rounded-[2.5rem] px-12 py-6 flex items-center justify-center gap-4 group/btn shadow-xl active:scale-95"
-                      onClick={() => navigate('/properties')}
-                    >
-                      <ChevronRight size={24} className="text-black group-hover:translate-x-1 transition-transform" />
-                    </button>
-                  </div>
-                )}
+                {/* Filter 4: Max Hectares */}
+                <div className="relative">
+                  <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 block">
+                    Área Máx (ha)
+                  </label>
+                  <input
+                    type="number"
+                    value={maxHectares}
+                    onChange={(e) => setMaxHectares(e.target.value)}
+                    placeholder="1000+"
+                    className="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium outline-none focus:border-green-500 focus:bg-white transition-all placeholder:text-slate-300"
+                  />
+                </div>
+
+                {/* Search Button */}
+                <div className="relative flex items-end">
+                  <button
+                    onClick={() => {
+                      document.getElementById('properties-section')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="w-full p-4 rounded-xl text-white font-black uppercase text-xs tracking-wider hover:opacity-90 transition-all shadow-lg flex items-center justify-center gap-2"
+                    style={{ backgroundColor: settings.primaryColor }}
+                  >
+                    <Search size={18} />
+                    Buscar
+                  </button>
+                </div>
+
               </div>
-            </div>
-          </div>
 
-          <div className="mt-12 flex gap-12 text-white/40 font-black text-[9px] uppercase tracking-[0.3em]">
-            <span className="flex items-center gap-2 italic"><span className="w-1 h-1 bg-white/40 rounded-full"></span> Suporte 24/7</span>
-            <span className="flex items-center gap-2 italic"><span className="w-1 h-1 bg-white/40 rounded-full"></span> Mais de 10 mil Hect. Vendidos</span>
-            <span className="flex items-center gap-2 italic"><span className="w-1 h-1 bg-white/40 rounded-full"></span> Escritura Imediata</span>
+              {/* Results Counter */}
+              {(propertyType || city || minHectares || maxHectares) && (
+                <div className="mt-6 pt-6 border-t border-slate-100">
+                  <p className="text-sm text-slate-600 font-medium text-center">
+                    <span className="font-black" style={{ color: settings.primaryColor }}>
+                      {filteredProperties.length}
+                    </span>
+                    {' '}propriedade{filteredProperties.length !== 1 ? 's' : ''} encontrada{filteredProperties.length !== 1 ? 's' : ''}
+                    {(propertyType || city || minHectares || maxHectares) && (
+                      <button
+                        onClick={() => {
+                          setPropertyType('');
+                          setCity('');
+                          setMinHectares('');
+                          setMaxHectares('');
+                        }}
+                        className="ml-4 text-xs font-bold underline hover:no-underline"
+                        style={{ color: settings.primaryColor }}
+                      >
+                        Limpar filtros
+                      </button>
+                    )}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Social Proof Bar - Full Width Impact */}
-      <section className="relative z-20 py-8 md:py-12 px-4 md:px-6">
-        <div className="max-w-7xl mx-auto bg-white rounded-[2rem] md:rounded-[3rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.15)] p-8 md:p-16 flex flex-col md:flex-row items-center justify-around gap-8 md:gap-12 border-4" style={{ borderColor: `${settings.primaryColor}15`, backdropFilter: 'blur(20px)' }}>
-           <div className="text-center group cursor-default">
-              <span className="block text-5xl font-black mb-2 italic tracking-tighter transition-transform group-hover:scale-110" style={{ color: settings.secondaryColor }}>+1.5k</span>
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-black/60">Imóveis Vendidos</span>
+      {/* Stats Section - Minimalist & High Impact */}
+      <section className="py-20 border-b border-slate-100 bg-slate-50 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 text-center relative z-10">
+           
+           <div className="group">
+              <h3 className="text-5xl md:text-6xl font-medium text-slate-900 mb-2 tracking-tight transition-all duration-700 group-hover:-translate-y-2" style={{ fontFamily: 'Playfair Display, serif' }}>
+                +1.5k
+              </h3>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 group-hover:text-amber-600 transition-colors">Transações Realizadas</p>
            </div>
-           <div className="w-px h-16 bg-slate-100 hidden md:block"></div>
-           <div className="text-center group cursor-default">
-              <span className="block text-5xl font-black mb-2 italic tracking-tighter transition-transform group-hover:scale-110" style={{ color: settings.primaryColor }}>R$ 2Bi</span>
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-black/60">Valor em Ativos</span>
+
+           <div className="hidden md:block absolute right-1/3 top-1/2 -translate-y-1/2 w-px h-16 bg-slate-200"></div>
+           <div className="hidden md:block absolute left-1/3 top-1/2 -translate-y-1/2 w-px h-16 bg-slate-200"></div>
+
+           <div className="group">
+              <h3 className="text-5xl md:text-6xl font-medium text-slate-900 mb-2 tracking-tight transition-all duration-700 group-hover:-translate-y-2" style={{ fontFamily: 'Playfair Display, serif' }}>
+                2Bi
+              </h3>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 group-hover:text-amber-600 transition-colors">Volume Geral de Vendas</p>
            </div>
-           <div className="w-px h-16 bg-slate-100 hidden md:block"></div>
-           <div className="text-center group cursor-default">
-              <span className="block text-5xl font-black mb-2 italic tracking-tighter transition-transform group-hover:scale-110" style={{ color: settings.secondaryColor }}>15 Anos</span>
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-black/60">De Tradição Rural</span>
+
+           <div className="group">
+              <h3 className="text-5xl md:text-6xl font-medium text-slate-900 mb-2 tracking-tight transition-all duration-700 group-hover:-translate-y-2" style={{ fontFamily: 'Playfair Display, serif' }}>
+                15
+              </h3>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 group-hover:text-amber-600 transition-colors">Anos de Excelência</p>
            </div>
         </div>
       </section>
 
       {/* Featured Listings */}
-      <section className="relative max-w-[1600px] mx-auto px-4 md:px-6 py-16 md:py-32">
+      <section id="propriedades" className="relative max-w-[1600px] mx-auto px-4 md:px-6 py-16 md:py-32">
         {/* Floating Decorative Badge */}
         <div className="absolute -top-10 -right-10 w-40 h-40 bg-white rounded-full shadow-2xl border border-slate-50 flex flex-col items-center justify-center p-6 text-center rotate-12 group hover:rotate-0 transition-transform hidden xl:flex">
            <div className="w-12 h-12 rounded-full mb-2 flex items-center justify-center" style={{ backgroundColor: settings.primaryColor }}>
@@ -491,37 +420,42 @@ const LandingPage: React.FC = () => {
         </div>
 
         <div className="flex flex-col md:flex-row items-end justify-between mb-24 gap-8">
-          <div className="max-w-3xl">
+          <div className="max-w-4xl w-full">
             <div className="flex gap-4 mb-6">
-              <button 
-                onClick={() => setSearchPurpose('Comprar')}
-                className={`px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] transition-all border ${searchPurpose === 'Comprar' ? 'bg-slate-900 border-slate-900 text-white' : 'bg-transparent border-slate-200 text-slate-400 hover:border-slate-400'}`}
-              >
-                Imóveis para Comprar
-              </button>
-              <button 
-                onClick={() => setSearchPurpose('Alugar')}
-                className={`px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] transition-all border ${searchPurpose === 'Alugar' ? 'bg-slate-900 border-slate-900 text-white' : 'bg-transparent border-slate-200 text-slate-400 hover:border-slate-400'}`}
-              >
-                Imóveis para Alugar
-              </button>
+              <div className="px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] bg-slate-900 border border-slate-900 text-white whitespace-nowrap">
+                Venda Exclusiva de Fazendas e Sítios
+              </div>
             </div>
             <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-4 block" style={{ color: settings.primaryColor }}>Oportunidades de Ouro</span>
-            <h2 className="font-black mb-8 uppercase italic leading-none" style={{ color: settings.secondaryColor, fontSize: `${(settings.headingFontSize || 48) * 0.8}px` }}>
+            <h2 className="font-black mb-8 uppercase italic leading-tight" style={{ color: settings.secondaryColor, fontSize: `${(settings.headingFontSize || 48) * 0.8}px` }}>
               {settings.homeContent?.featuredTitle ? (
                 <>
-                  {settings.homeContent.featuredTitle.split(' ')[0]} <br/>{settings.homeContent.featuredTitle.split(' ').slice(1).join(' ') || ''}
+                  {settings.homeContent.featuredTitle}
                 </>
               ) : (
-                <>Propriedades <br/>de Elite</>
+                <>Propriedades Premium</>
               )}
             </h2>
             <div className="w-32 h-3 mb-8 rounded-full" style={{ backgroundColor: settings.primaryColor }}></div>
             <p className="text-black/60 text-xl font-medium leading-relaxed italic">"{settings.homeContent?.featuredDescription || 'Nossa curadoria foca em produtividade, localização estratégica e potencial de valorização exponencial.'}"</p>
           </div>
-          <button className="flex items-center gap-4 text-sm font-black uppercase tracking-widest group px-8 py-4 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-all shadow-sm" style={{ color: settings.secondaryColor }}>
-            Ver Todos <ChevronRight className="group-hover:translate-x-2 transition-transform" />
-          </button>
+          {/* Pagination Controls Top */}
+          <div className="flex gap-4">
+             <button 
+                onClick={prevPage} 
+                disabled={currentPage === 1}
+                className="w-12 h-12 rounded-full border border-slate-200 flex items-center justify-center hover:bg-black hover:text-white hover:border-black transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-inherit"
+             >
+                <ChevronRight className="rotate-180" size={20} />
+             </button>
+             <button 
+                onClick={nextPage} 
+                disabled={currentPage === totalPages}
+                className="w-12 h-12 rounded-full border border-slate-200 flex items-center justify-center hover:bg-black hover:text-white hover:border-black transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-inherit"
+             >
+                <ChevronRight size={20} />
+             </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10">
@@ -531,210 +465,390 @@ const LandingPage: React.FC = () => {
                <span className="text-slate-400 font-bold uppercase tracking-widest text-xs">Buscando Propriedades...</span>
              </div>
           ) : properties.length === 0 ? (
-             <div className="col-span-3 text-center py-20 text-black/60 bg-slate-50 rounded-3xl border border-dashed">Nenhum imóvel em destaque no momento.</div>
+             <div className="col-span-3 text-center py-20 text-black/60 bg-slate-50 rounded-3xl border border-dashed">Nenhum imóvel encontrado.</div>
           ) : (
-            properties.map((property) => (
+            currentProperties.map((property) => (
             <div 
               key={property.id} 
               onClick={() => navigate(`/property/${property.id}`)}
-              className="group bg-white rounded-[3rem] overflow-hidden shadow-sm hover:shadow-[0_40px_100px_-20px_rgba(0,0,0,0.15)] transition-all border border-slate-100 flex flex-col h-full transform hover:-translate-y-4 duration-500 cursor-pointer"
+              className="group bg-white rounded-[4rem] overflow-hidden shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] hover:shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2)] transition-all duration-500 border-0 flex flex-col h-full cursor-pointer relative hover:-translate-y-3"
             >
-              <div className="relative h-72 overflow-hidden">
-                <img 
-                  src={property.images?.[0] || 'https://via.placeholder.com/400x300?text=Sem+Foto'} 
-                  alt={property.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 grayscale-[20%] group-hover:grayscale-0"
-                />
-                <div className="absolute top-6 left-6 text-white text-[10px] font-black px-5 py-2 rounded-full uppercase tracking-[0.2em] shadow-2xl backdrop-blur-md" style={{ backgroundColor: `${settings.secondaryColor}CC` }}>
-                  {property.type === PropertyType.LAND ? 'Agronegócio' : 'Premium'}
-                </div>
-                <div className="absolute bottom-6 right-6 bg-white/95 backdrop-blur-xl px-5 py-3 rounded-[1.5rem] flex items-center gap-2 shadow-2xl border border-white/20 transform group-hover:scale-105 transition-transform">
-                  <Maximize size={18} style={{ color: settings.primaryColor }} />
-                  <span className="text-sm font-black uppercase tracking-tighter" style={{ color: settings.secondaryColor }}>
-                    {property.features.area > 100000 
-                      ? `${(property.features.area / 10000).toFixed(0)} Hect` 
-                      : `${property.features.area}m²`}
-                  </span>
-                </div>
-                {/* Overlay on hover */}
-                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
-                  <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-2xl transform scale-0 group-hover:scale-100 transition-transform delay-100">
-                    <ChevronRight size={28} style={{ color: settings.primaryColor }} />
-                  </div>
+              {/* Floating Header */}
+              <div className="absolute top-6 left-0 right-0 z-20 px-6 flex justify-between items-start pointer-events-none">
+                 <div className="bg-white/90 backdrop-blur-md px-5 py-2 rounded-full shadow-lg">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900">
+                        {property.location.neighborhood || property.location.city}
+                    </span>
+                 </div>
+                 {property.type === PropertyType.FAZENDA && (
+                    <div className="bg-black/80 backdrop-blur-md text-white px-4 py-2 rounded-full shadow-lg">
+                       <span className="text-[9px] font-black uppercase tracking-widest">Fazenda</span>
+                    </div>
+                 )}
+              </div>
+
+              {/* Image Section - Taller & Sleeker */}
+              <div className="relative h-[450px] overflow-hidden w-full bg-slate-100 flex items-center justify-center group-hover:bg-slate-50 transition-colors">
+                {property.images?.[0] ? (
+                    <img 
+                      src={property.images[0]} 
+                      alt={property.title}
+                      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                      onError={(e) => {
+                          // Fallback on error to Logo or Placeholder
+                          const target = e.target as HTMLImageElement;
+                          if (settings.logoUrl) {
+                              target.src = settings.logoUrl;
+                              target.classList.add('object-contain', 'p-12', 'opacity-50');
+                              target.classList.remove('object-cover');
+                          } else {
+                              target.style.display = 'none';
+                              target.nextElementSibling?.classList.remove('hidden'); // Show generic fallback specific div if needed, but for now we rely on the component below logic
+                          }
+                      }}
+                    />
+                ) : (
+                   /* Fallback for No Image Initial State */
+                   <div className="w-full h-full flex items-center justify-center bg-slate-50 p-12">
+                       {settings.logoUrl ? (
+                           <img src={settings.logoUrl} alt="Logo" className="max-w-[150px] md:max-w-[200px] object-contain opacity-30 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500" />
+                       ) : (
+                           <div className="flex flex-col items-center gap-4 opacity-20">
+                               <Home size={64} />
+                               <span className="text-xs font-black uppercase tracking-widest">Sem Foto</span>
+                           </div>
+                       )}
+                   </div>
+                )}
+
+                {/* Gradient only if there is an image acting as cover */}
+                {property.images?.[0] && (
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity"></div>
+                )}
+                
+                {/* Content Overlay */}
+                <div className={`absolute bottom-8 left-8 right-8 text-white z-10 ${!property.images?.[0] ? 'text-slate-900' : ''}`}>
+                   <h3 className={`text-2xl font-light italic leading-tight mb-2 ${!property.images?.[0] ? 'text-slate-900' : 'text-white'}`} style={{ fontFamily: 'Playfair Display, serif' }}>{property.title}</h3>
+                   <div className={`h-px w-10 mb-4 group-hover:w-full transition-all duration-700 ${!property.images?.[0] ? 'bg-slate-300' : 'bg-white/40'}`}></div>
+                   
+                   {/* Features in Image */}
+                   <div className={`flex items-center gap-6 ${!property.images?.[0] ? 'text-slate-500' : 'text-white/90'}`}>
+                      <div className="flex items-center gap-2">
+                        <Maximize size={16} strokeWidth={1.5} />
+                        <span className="text-xs font-medium">{property.features.areaHectares} ha</span>
+                      </div>
+                      {property.features.casaSede && (
+                        <div className="flex items-center gap-2">
+                          <Home size={16} strokeWidth={1.5} />
+                          <span className="text-xs font-medium">Casa Sede</span>
+                        </div>
+                      )}
+                      {property.features.temGado && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium">🐄 Gado</span>
+                        </div>
+                      )}
+                   </div>
                 </div>
               </div>
-              <div className="p-10 flex-1 flex flex-col">
-                <div className="mb-6">
-                  <p className="font-black text-[10px] uppercase tracking-[0.3em] mb-3 flex items-center gap-2" style={{ color: settings.primaryColor }}>
-                    <div className="w-3 h-0.5" style={{ backgroundColor: settings.primaryColor }}></div>
-                    {property.location.neighborhood}, {property.location.state}
-                  </p>
-                  <h3 className="text-2xl font-black text-black line-clamp-2 uppercase leading-[1.1] italic tracking-tighter transition-colors group-hover:text-indigo-950">{property.title}</h3>
+
+              {/* Bottom Minimal Info */}
+              <div className="p-8 bg-white flex items-center justify-between">
+                <div>
+                   <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] mb-1">Valor de Venda</p>
+                   <p className="text-2xl font-medium tracking-tight text-slate-900" style={{ fontFamily: 'Playfair Display, serif' }}>
+                     {property.price > 0 ? property.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Sob Consulta'}
+                   </p>
                 </div>
-                <p className="text-black/60 text-sm line-clamp-3 mb-8 leading-relaxed font-medium italic opacity-80">"{property.description}"</p>
-                <div className="mt-auto pt-8 border-t border-slate-100 flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Investimento</span>
-                    <span className="text-2xl font-black italic tracking-tighter" style={{ color: settings.secondaryColor }}>
-                      {property.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </span>
-                  </div>
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all group-hover:shadow-xl" style={{ backgroundColor: `${settings.secondaryColor}10`, color: settings.secondaryColor }}>
-                    <Search size={20} />
-                  </div>
+                <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors duration-300 shadow-sm">
+                   <ChevronRight size={20} />
                 </div>
               </div>
             </div>
           )))}
         </div>
+        
+        {/* Pagination Info Bottom */}
+        {!loading && totalPages > 1 && (
+            <div className="mt-16 flex flex-col items-center justify-center gap-6">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                    Página {currentPage} de {totalPages}
+                </span>
+                <div className="flex gap-4">
+                    <button 
+                        onClick={prevPage} 
+                        disabled={currentPage === 1}
+                        className="px-8 py-3 rounded-2xl bg-slate-50 text-slate-900 font-bold text-xs uppercase tracking-widest hover:bg-black hover:text-white transition-all disabled:opacity-30"
+                    >
+                        Anterior
+                    </button>
+                    <button 
+                        onClick={nextPage} 
+                        disabled={currentPage === totalPages}
+                        className="px-8 py-3 rounded-2xl bg-slate-50 text-slate-900 font-bold text-xs uppercase tracking-widest hover:bg-black hover:text-white transition-all disabled:opacity-30"
+                    >
+                        Próxima
+                    </button>
+                </div>
+            </div>
+        )}
       </section>
 
-      {/* Service Blocks Section - Inovare Inspired */}
-      <section className="py-16 md:py-32 px-4 md:px-6 bg-slate-50/50">
-        <div className="max-w-7xl mx-auto">
+      {/* Service Blocks Section - Professional Rural Focus */}
+      <section className="py-32 px-4 md:px-6 bg-white">
+        <div className="max-w-[1600px] mx-auto">
+          {/* Header */}
           <div className="text-center mb-20">
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-4 block" style={{ color: settings.primaryColor }}>Soluções Exclusivas</span>
-            <h2 className="text-4xl md:text-5xl font-black text-black uppercase italic tracking-tighter">Como podemos ajudar?</h2>
+            <h2 className="text-5xl md:text-7xl font-black uppercase mb-6" style={{ color: settings.primaryColor }}>
+              Nossos Serviços
+            </h2>
+            <p className="text-2xl md:text-3xl font-bold mb-4" style={{ color: settings.secondaryColor }}>
+              Especialistas em Propriedades Rurais
+            </p>
+            <p className="text-slate-600 text-lg max-w-3xl mx-auto leading-relaxed">
+              Conectamos investidores a fazendas e sítios de alto potencial produtivo. Experiência comprovada no mercado de terras rurais do Brasil.
+            </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            {/* Block 1: Compra */}
-            <div className="group relative overflow-hidden bg-black rounded-[3rem] p-16 flex flex-col items-center text-center text-white transition-all hover:scale-[1.02] shadow-2xl">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl group-hover:bg-white/10 transition-colors"></div>
-              <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center mb-8 border border-white/10 shadow-inner group-hover:scale-110 transition-transform">
-                <Search size={40} style={{ color: settings.primaryColor }} />
+
+          {/* Services Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            
+            {/* Service 1: Compra */}
+            <div className="group bg-slate-50 rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-500">
+              <div className="relative h-64 overflow-hidden">
+                <img 
+                  src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80" 
+                  alt="Compra de Fazendas" 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                <div className="absolute bottom-6 left-6">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: settings.primaryColor }}>
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-black text-white uppercase">Compra</h3>
+                </div>
               </div>
-              <h3 className="text-[11px] font-black uppercase tracking-[0.3em] mb-4 opacity-60">Serviço Premium</h3>
-              <h4 className="text-3xl font-black mb-6 uppercase italic tracking-tighter">Compre seu Imóvel</h4>
-              <p className="text-white/40 text-sm font-medium leading-relaxed mb-10 max-w-xs">
-                Acesse nossa curadoria exclusiva de fazendas e ativos de luxo com total segurança.
-              </p>
-              <button className="px-10 py-5 rounded-full font-black uppercase text-[10px] tracking-[0.2em] transition-all bg-white text-black hover:scale-105 active:scale-95">
-                Ver Oportunidades
-              </button>
+              <div className="p-8">
+                <h4 className="text-2xl font-bold mb-4 text-slate-900">Aquisição de Fazendas e Sítios</h4>
+                <ul className="space-y-3 text-slate-600">
+                  <li className="flex items-start gap-3">
+                    <span className="text-green-600 mt-1">✓</span>
+                    <span>Análise técnica de solo e recursos hídricos</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-green-600 mt-1">✓</span>
+                    <span>Avaliação de potencial produtivo e rentabilidade</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-green-600 mt-1">✓</span>
+                    <span>Due diligence completa e segurança jurídica</span>
+                  </li>
+                </ul>
+              </div>
             </div>
 
-            {/* Block 2: Anuncie */}
-            <div className="group relative overflow-hidden bg-white rounded-[3rem] p-16 flex flex-col items-center text-center transition-all hover:scale-[1.02] shadow-2xl border border-slate-100">
-              <div className="absolute bottom-0 left-0 w-64 h-64 bg-slate-50 rounded-full -ml-20 -mb-20 blur-3xl group-hover:bg-slate-100 transition-colors"></div>
-              <div className="w-24 h-24 rounded-full bg-slate-50 flex items-center justify-center mb-8 border border-white/10 shadow-inner group-hover:scale-110 transition-transform">
-                <Home size={40} style={{ color: settings.primaryColor }} />
+            {/* Service 2: Venda */}
+            <div className="group bg-slate-50 rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-500">
+              <div className="relative h-64 overflow-hidden">
+                <img 
+                  src="https://images.unsplash.com/photo-1500076656116-558758c991c1?auto=format&fit=crop&w=800&q=80" 
+                  alt="Venda de Propriedades Rurais" 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                <div className="absolute bottom-6 left-6">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: settings.primaryColor }}>
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-black text-white uppercase">Venda</h3>
+                </div>
               </div>
-              <h3 className="text-[11px] font-black uppercase tracking-[0.3em] mb-4 opacity-40">Gestão Rural</h3>
-              <h4 className="text-3xl font-black mb-6 uppercase italic tracking-tighter" style={{ color: settings.secondaryColor }}>Anuncie seu Imóvel</h4>
-              <p className="text-black/60 text-sm font-medium leading-relaxed mb-10 max-w-xs">
-                Venda sua propriedade através da maior rede de investidores do agronegócio nacional.
-              </p>
-              <button 
-                className="px-10 py-5 rounded-full font-black uppercase text-[10px] tracking-[0.2em] transition-all text-white shadow-xl hover:scale-105 active:scale-95"
-                style={{ backgroundColor: settings.primaryColor }}
-              >
-                Entrar em Contato
-              </button>
+              <div className="p-8">
+                <h4 className="text-2xl font-bold mb-4 text-slate-900">Comercialização Estratégica</h4>
+                <ul className="space-y-3 text-slate-600">
+                  <li className="flex items-start gap-3">
+                    <span className="text-green-600 mt-1">✓</span>
+                    <span>Marketing direcionado a investidores qualificados</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-green-600 mt-1">✓</span>
+                    <span>Precificação baseada em análise de mercado</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-green-600 mt-1">✓</span>
+                    <span>Negociação profissional e confidencial</span>
+                  </li>
+                </ul>
+              </div>
             </div>
+
+            {/* Service 3: Consultoria */}
+            <div className="group bg-slate-50 rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-500">
+              <div className="relative h-64 overflow-hidden">
+                <img 
+                  src="https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=800&q=80" 
+                  alt="Consultoria Rural" 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                <div className="absolute bottom-6 left-6">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: settings.primaryColor }}>
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-black text-white uppercase">Consultoria</h3>
+                </div>
+              </div>
+              <div className="p-8">
+                <h4 className="text-2xl font-bold mb-4 text-slate-900">Assessoria Especializada</h4>
+                <ul className="space-y-3 text-slate-600">
+                  <li className="flex items-start gap-3">
+                    <span className="text-green-600 mt-1">✓</span>
+                    <span>Regularização fundiária e ambiental</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-green-600 mt-1">✓</span>
+                    <span>Planejamento de uso e viabilidade econômica</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-green-600 mt-1">✓</span>
+                    <span>Suporte em financiamento e crédito rural</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
 
-      {/* About Us Section - Modern Blob Style */}
-      <section className="py-16 md:py-32 px-4 md:px-6 overflow-hidden">
-        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-12 md:gap-24">
-          <div className="flex-1 relative group">
-            {/* Background Glow */}
-            <div 
-              className="absolute -top-10 -left-10 w-96 h-96 rounded-full blur-[120px] opacity-30"
-              style={{ backgroundColor: settings.primaryColor }}
-            ></div>
+      {/* About Section - Modern Expert Layout */}
+      <section className="py-24 px-4 md:px-6 bg-white">
+        <div className="max-w-[1600px] mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
             
-            {/* European Style Broker Card */}
-            <div className="relative z-10 w-full h-[650px] bg-white rounded-[4rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.3)] border border-white transition-all duration-700 hover:shadow-[0_80px_150px_-30px_rgba(0,0,0,0.4)]">
-              {/* Profile Image */}
-              <div className="absolute inset-0">
-                <img 
-                  src={settings.homeContent?.broker?.photoUrl || "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=800&q=80"} 
-                  alt={settings.homeContent?.broker?.name || "Renato Vilmar Piovesana"}
-                  className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity"></div>
-              </div>
-
-              {/* Card Content Overlay */}
-              <div className="absolute bottom-0 left-0 right-0 p-12 text-white">
-                <div className="mb-8 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                  <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-3 block text-white/60">Broker Exclusive</span>
-                  <h3 className="text-4xl font-black italic tracking-tighter uppercase leading-none mb-2">
-                    {settings.homeContent?.broker?.name ? (
-                      <>
-                        {settings.homeContent.broker.name.split(' ').slice(0, -1).join(' ')} <br/> 
-                        <span style={{ color: settings.primaryColor }}>{settings.homeContent.broker.name.split(' ').slice(-1)}</span>
-                      </>
-                    ) : (
-                      <>Renato Vilmar <br/> <span style={{ color: settings.primaryColor }}>Piovesana</span></>
-                    )}
-                  </h3>
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/40">
-                    CRECI {settings.homeContent?.broker?.creci || '10544F'} • Especialista em Ativos de Luxo
-                  </p>
+            {/* Left: Photo with decorative elements */}
+            <div className="relative">
+              <div className="relative w-full max-w-md mx-auto">
+                {/* Decorative background shape */}
+                <div className="absolute inset-0 rounded-3xl transform rotate-6 opacity-10" style={{ backgroundColor: settings.primaryColor }}></div>
+                
+                {/* Main photo container */}
+                <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+                  <img 
+                    src={settings.homeContent?.broker?.photoUrl || "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=800&q=80"} 
+                    alt="Especialista em Propriedades Rurais" 
+                    className="w-full h-auto"
+                  />
+                  
+                  {/* Badge overlay */}
+                  <div className="absolute bottom-6 left-6 right-6 bg-white/95 backdrop-blur-sm rounded-2xl p-6 shadow-xl">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: settings.primaryColor }}>
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-wider text-slate-400">Especialista Certificado</p>
+                        <p className="text-sm font-bold text-slate-900">CRECI Ativo • 20+ Anos</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-
-                <div className="flex items-center gap-6 opacity-0 group-hover:opacity-100 transition-all duration-700 delay-200 translate-y-4 group-hover:translate-y-0">
-                   <div className="flex gap-4">
-                      <button 
-                        onClick={() => window.open(`https://wa.me/${(settings.homeContent?.broker?.phone || '5544998433030').replace(/\D/g, '')}`, '_blank')}
-                        className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-white hover:text-black transition-all"
-                      >
-                        <MessageCircle size={20} fill="currentColor" />
-                      </button>
-                      <button className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-white hover:text-black transition-all">
-                        <Instagram size={20} />
-                      </button>
-                   </div>
-                   <div className="h-px flex-1 bg-white/10"></div>
-                   <button 
-                    onClick={() => navigate('/properties')}
-                    className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors"
-                  >
-                     Ver Carteira <ChevronRight size={14} />
-                   </button>
+                
+                {/* Stats cards */}
+                <div className="absolute -right-8 top-1/4 hidden lg:block">
+                  <div className="bg-white rounded-2xl shadow-xl p-6 w-32">
+                    <p className="text-3xl font-black mb-1" style={{ color: settings.primaryColor }}>500+</p>
+                    <p className="text-xs font-bold text-slate-600">Propriedades Vendidas</p>
+                  </div>
                 </div>
-              </div>
-
-              {/* Floating Euro Badge */}
-              <div className="absolute top-10 right-10 w-20 h-20 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white/40 rotate-12 group-hover:rotate-0 transition-transform duration-700">
-                 <div className="text-[8px] font-black uppercase tracking-widest text-center leading-tight">
-                    Premium<br/>Selection
-                 </div>
               </div>
             </div>
 
-            {/* Background floating element */}
-            <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-slate-900 rounded-[3rem] -z-10 group-hover:translate-x-5 group-hover:translate-y-5 transition-transform duration-1000"></div>
-          </div>
-          
-          <div className="flex-1">
-            <span className="text-[10px] font-black uppercase tracking-[0.5em] mb-6 block" style={{ color: settings.primaryColor }}>Nossa História</span>
-            <h2 className="text-5xl md:text-6xl font-black mb-10 leading-[0.95] uppercase italic tracking-tighter" style={{ color: settings.secondaryColor }}>
-              A Especialista em <br/> <span style={{ color: settings.primaryColor }}>Ativos Rurais</span>
-            </h2>
-            <div className="space-y-8">
-              <p className="text-black/60 text-lg leading-relaxed font-medium italic">
-                "Nosso compromisso vai além da intermediação. Somos parceiros estratégicos na expansão do seu patrimônio rural, trazendo tecnologia e segurança jurídica para cada hectare negociado."
+            {/* Right: Content */}
+            <div>
+              <span className="text-xs font-black uppercase tracking-[0.3em] mb-4 block" style={{ color: settings.primaryColor }}>
+                Especialista
+              </span>
+              
+              <h2 className="text-4xl md:text-5xl font-black uppercase leading-tight mb-6" style={{ color: settings.secondaryColor }}>
+                Mais de 20 Anos no Mercado Rural
+              </h2>
+              
+              <p className="text-lg text-slate-600 mb-8 leading-relaxed">
+                Conectamos investidores e produtores rurais às melhores oportunidades em fazendas e sítios produtivos. Nossa experiência no agronegócio brasileiro garante segurança e rentabilidade em cada transação.
               </p>
-              <div className="grid grid-cols-2 gap-8">
-                <div className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:bg-white hover:shadow-xl transition-all">
-                  <Clock size={24} className="mb-4" style={{ color: settings.primaryColor }} />
-                  <h4 className="font-black uppercase text-xs tracking-widest mb-2">Agilidade</h4>
-                  <p className="text-[11px] text-slate-400 font-bold leading-relaxed uppercase">Processos otimizados e seguros.</p>
+
+              {/* Features list */}
+              <div className="space-y-4 mb-10">
+                <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: settings.primaryColor }}>
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 mb-1">Análise Técnica Completa</h4>
+                    <p className="text-sm text-slate-600">Avaliação de solo, recursos hídricos e potencial produtivo</p>
+                  </div>
                 </div>
-                <div className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:bg-white hover:shadow-xl transition-all">
-                  <Search size={24} className="mb-4" style={{ color: settings.primaryColor }} />
-                  <h4 className="font-black uppercase text-xs tracking-widest mb-2">Curadoria</h4>
-                  <p className="text-[11px] text-slate-400 font-bold leading-relaxed uppercase">Seleção rigorosa de ativos.</p>
+
+                <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: settings.primaryColor }}>
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 mb-1">Regularização Completa</h4>
+                    <p className="text-sm text-slate-600">Documentação fundiária e licenciamento ambiental</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: settings.primaryColor }}>
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 mb-1">Suporte Financeiro</h4>
+                    <p className="text-sm text-slate-600">Assessoria em crédito rural e financiamento</p>
+                  </div>
                 </div>
               </div>
-              <button className="w-full py-6 rounded-full font-black uppercase text-xs tracking-[0.3em] bg-slate-900 text-white transition-all shadow-xl hover:scale-105 active:scale-95">
-                Saiba Mais sobre a {settings.agencyName}
-              </button>
+
+              {/* CTA Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button 
+                  onClick={() => window.open(`https://wa.me/${settings.contactPhone?.replace(/\D/g, '')}`, '_blank')} 
+                  className="px-8 py-4 text-white text-sm font-black uppercase tracking-wider hover:opacity-90 transition-all rounded-xl shadow-lg flex items-center justify-center gap-2"
+                  style={{ backgroundColor: settings.primaryColor }}
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                  </svg>
+                  Falar com Especialista
+                </button>
+                
+                <button 
+                  onClick={() => navigate('/properties')}
+                  className="px-8 py-4 border-2 text-sm font-black uppercase tracking-wider hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all rounded-xl"
+                  style={{ borderColor: settings.secondaryColor, color: settings.secondaryColor }}
+                >
+                  Ver Propriedades
+                </button>
+              </div>
             </div>
+
           </div>
         </div>
       </section>
@@ -752,56 +866,75 @@ const LandingPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Footer */}
-      <footer className="py-16 md:py-32 px-4 md:px-6 border-t border-white/5" style={{ backgroundColor: settings.secondaryColor, color: getContrastColor(settings.secondaryColor) }}>
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-20">
-          <div className="col-span-1 md:col-span-1">
-            <div className="mb-10">
-               {settings.logoUrl ? (
-                 <img src={settings.logoUrl} alt="Logo Footer" className="w-auto object-contain opacity-90" style={{ height: `${(settings.logoHeight || 80) * 1.0}px`, maxHeight: '150px' }} />
-               ) : (
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-2xl" style={{ backgroundColor: settings.primaryColor }}>
-                    <Home className="text-white" size={32} />
-                  </div>
-                  <span className="text-3xl font-black uppercase italic tracking-tighter">ImobSaaS</span>
-                </div>
-               )}
-            </div>
-            <p className="opacity-70 text-base leading-relaxed font-medium">
-              {settings.footerText || "Especialistas em intermediação de ativos imobiliários de alto valor. Inteligência de mercado e assessoria completa."}
-            </p>
-          </div>
-          <div>
-            <h4 className="font-black mb-10 uppercase text-xs tracking-[0.4em]" style={{ color: settings.primaryColor }}>Serviços</h4>
-            <ul className="space-y-5 text-sm font-bold opacity-70">
-              <li><a href="#" className="hover:opacity-100 transition-colors" style={{ color: 'inherit' }}>Venda de Fazendas</a></li>
-              <li><a href="#" className="hover:opacity-100 transition-colors" style={{ color: 'inherit' }}>Avaliação Patrimonial</a></li>
-              <li><a href="#" className="hover:opacity-100 transition-colors" style={{ color: 'inherit' }}>Consultoria Jurídica</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-black mb-10 uppercase text-xs tracking-[0.4em]" style={{ color: settings.primaryColor }}>Fale Conosco</h4>
-            <ul className="space-y-5 opacity-70 text-sm font-bold">
-              <li className="flex items-center gap-3"><Phone size={16} /> (61) 99999-0000</li>
-              <li className="flex items-center gap-3"><Globe size={16} /> www.imobisaas.com</li>
-            </ul>
-          </div>
-          <div>
-             <h4 className="font-black mb-10 uppercase text-xs tracking-[0.4em]" style={{ color: settings.primaryColor }}>Redes Sociais</h4>
-             <div className="flex gap-6">
-               <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-white hover:text-black cursor-pointer transition-all"><Globe size={24} /></div>
-               <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-white hover:text-black cursor-pointer transition-all"><Phone size={24} /></div>
-             </div>
-          </div>
+      {/* Contact Form Section */}
+      <ContactForm />
+
+      {/* Footer - High End Minimalist - Fazendas Brasil Style */}
+      <footer className="bg-[#1a1a1a] text-white pt-24 pb-12 border-t border-white/5 font-sans">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+           {/* Brand */}
+           <div className="md:col-span-1">
+              <h2 className="text-3xl font-light italic mb-8 tracking-tighter text-white" style={{ fontFamily: 'Playfair Display, serif' }}>Fazendas Brasil<span className="text-green-600">.</span></h2>
+              <p className="text-white text-sm leading-relaxed font-normal uppercase tracking-wide mb-8">
+                 Excelência em Propriedades Rurais.<br/>Desde 1995.
+              </p>
+              <div className="flex gap-4">
+                 <button className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white hover:text-black transition-all group"><Instagram size={16} className="opacity-60 group-hover:opacity-100" /></button>
+                 <button className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white hover:text-black transition-all group"><Youtube size={16} className="opacity-60 group-hover:opacity-100" /></button>
+                 <button className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white hover:text-black transition-all group"><Mail size={16} className="opacity-60 group-hover:opacity-100" /></button>
+              </div>
+           </div>
+
+           {/* Navigation */}
+           <div>
+              <h4 className="text-sm font-black uppercase tracking-[0.2em] mb-8 text-white">Navegação</h4>
+              <ul className="space-y-4 text-base font-bold text-white tracking-widest uppercase">
+                 <li className="hover:text-white cursor-pointer transition-colors flex items-center gap-2 group">
+                    <span className="w-0 group-hover:w-2 h-px bg-green-600 transition-all"></span>
+                    Propriedades
+                 </li>
+                 <li className="hover:text-white cursor-pointer transition-colors flex items-center gap-2 group">
+                    <span className="w-0 group-hover:w-2 h-px bg-green-600 transition-all"></span>
+                    Serviços
+                 </li>
+                 <li className="hover:text-white cursor-pointer transition-colors flex items-center gap-2 group">
+                    <span className="w-0 group-hover:w-2 h-px bg-amber-600 transition-all"></span>
+                    Sobre
+                 </li>
+                 <li className="hover:text-white cursor-pointer transition-colors flex items-center gap-2 group">
+                    <span className="w-0 group-hover:w-2 h-px bg-amber-600 transition-all"></span>
+                    Contato
+                 </li>
+              </ul>
+           </div>
+
+           {/* Legal */}
+           <div>
+              <h4 className="text-sm font-black uppercase tracking-[0.2em] mb-8 text-white">Legal</h4>
+              <ul className="space-y-4 text-base font-bold text-white tracking-widest uppercase">
+                 <li className="hover:text-white cursor-pointer transition-colors">Política de Privacidade</li>
+                 <li className="hover:text-white cursor-pointer transition-colors">Termos de Uso</li>
+                 <li className="hover:text-white cursor-pointer transition-colors">CRECI 4222J</li>
+              </ul>
+           </div>
+
+           {/* Newsletter */}
+           <div>
+              <h4 className="text-sm font-black uppercase tracking-[0.2em] mb-8 text-white">Exclusive Updates</h4>
+              <p className="text-white text-sm mb-6">Receba nossa curadoria mensal de oportunidades off-market.</p>
+              <div className="flex border-b border-white/10 pb-2 group focus-within:border-white">
+                 <input type="email" placeholder="E-mail corporativo" className="bg-transparent outline-none text-white placeholder:text-white/20 w-full text-sm py-2" />
+                 <button className="text-sm font-black uppercase tracking-widest text-white hover:text-green-500 transition-colors">Assinar</button>
+              </div>
+           </div>
         </div>
-        <div className="max-w-7xl mx-auto mt-24 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 opacity-50">
-          <div className="text-[10px] font-black uppercase tracking-[0.5em]">
-            © 2024 Fazendas Brasil Select - Desenvolvido para ImobSaaS
-          </div>
-          <Link to="/admin" className="text-[10px] font-black uppercase tracking-[0.5em] hover:opacity-100 transition-opacity flex items-center gap-2">
-            <Terminal size={12} /> Acesso Administrativo
-          </Link>
+        
+        <div className="max-w-7xl mx-auto pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-sm uppercase tracking-[0.2em] text-white gap-4 px-6 md:px-0">
+           <p>© 2024 Fazendas Brasil - Propriedades Rurais.</p>
+           <div className="flex gap-8">
+              <Link to="/admin" className="hover:text-white/40 transition-colors">Admin Access</Link>
+              <span>Designed by Fazendas Brasil</span>
+           </div>
         </div>
       </footer>
 
