@@ -146,7 +146,7 @@ app.post('/api/contact', async (req, res) => {
             console.error('❌ Erro ao buscar configurações:', settingsError);
         }
         
-        const contactEmail = settingsData?.contact_email || 'contato@okaimoveis.com.br';
+        const contactEmail = settingsData?.contact_email || 'contato@fazendasbrasil.com';
         const whatsappTemplate = settingsData?.contact_whatsapp_template || 
             'Olá {name}! Recebemos seu contato através do formulário "Fale Conosco". Nossa equipe já está analisando sua mensagem e entrará em contato em breve. Obrigado!';
         

@@ -37,7 +37,7 @@ const SiteHeader: React.FC = () => {
       {/* 1. TOP BAR (Primary Color) */}
       <div className="w-full text-white text-[11px] font-bold py-2 px-4 md:px-6 flex justify-between items-center" style={{ backgroundColor: settings.primaryColor }}>
         <div className="flex flex-wrap gap-4 md:gap-8 items-center">
-            <span>CRECI 4222J PJ</span>
+            <span>CRECI/PR 4.222J</span>
             <button className="hover:underline">Cadastre sua Propriedade Rural</button>
         </div>
         <div className="flex items-center gap-4">
@@ -86,21 +86,21 @@ const SiteHeader: React.FC = () => {
                     <MessageCircle size={28} style={{ color: settings.primaryColor }} /> {/* Using MessageCircle for WhatsApp */}
                     <div className="flex flex-col leading-tight">
                         <span className="text-sm font-bold">WhatsApp</span>
-                        <span className="text-sm text-slate-500">(44) 99722-3030</span>
+                        <span className="text-sm text-slate-500">(44) 99843-3030</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <Phone size={28} style={{ color: settings.primaryColor }} />
                     <div className="flex flex-col leading-tight">
                         <span className="text-sm font-bold">Telefone</span>
-                         <span className="text-sm text-slate-500">(44) 99722-3030</span>
+                         <span className="text-sm text-slate-500">(44) 99843-3030</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <Mail size={28} style={{ color: settings.primaryColor }} />
                     <div className="flex flex-col leading-tight">
                         <span className="text-sm font-bold">Email</span>
-                         <span className="text-sm text-slate-500">contato@okaimoveis.com.br</span>
+                         <span className="text-sm text-slate-500">contato@fazendasbrasil.com</span>
                     </div>
                 </div>
             </div>

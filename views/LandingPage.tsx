@@ -869,14 +869,14 @@ const LandingPage: React.FC = () => {
       {/* Contact Form Section */}
       <ContactForm />
 
-      {/* Footer - High End Minimalist - Fazendas Brasil Style */}
+      {/* Footer - High End Minimalist - CONVERSAR Style */}
       <footer className="bg-[#1a1a1a] text-white pt-24 pb-12 border-t border-white/5 font-sans">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
            {/* Brand */}
            <div className="md:col-span-1">
-              <h2 className="text-3xl font-light italic mb-8 tracking-tighter text-white" style={{ fontFamily: 'Playfair Display, serif' }}>Fazendas Brasil<span className="text-green-600">.</span></h2>
-              <p className="text-white text-sm leading-relaxed font-normal uppercase tracking-wide mb-8">
-                 Excelência em Propriedades Rurais.<br/>Desde 1995.
+              <h2 className="text-3xl font-black mb-8 tracking-tight text-white" style={{ fontFamily: 'Arial, sans-serif' }}>CONVERSAR<span className="text-green-600">.</span></h2>
+              <p className="text-white/70 text-sm leading-relaxed mb-8">
+                 Nossa equipe de especialistas está pronta para ajudá-lo a encontrar a propriedade rural perfeita. Entre em contato e descubra as melhores oportunidades do mercado.
               </p>
               <div className="flex gap-4">
                  <button className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white hover:text-black transition-all group"><Instagram size={16} className="opacity-60 group-hover:opacity-100" /></button>
@@ -908,13 +908,21 @@ const LandingPage: React.FC = () => {
               </ul>
            </div>
 
-           {/* Legal */}
+           {/* Contact Info */}
            <div>
-              <h4 className="text-sm font-black uppercase tracking-[0.2em] mb-8 text-white">Legal</h4>
-              <ul className="space-y-4 text-base font-bold text-white tracking-widest uppercase">
-                 <li className="hover:text-white cursor-pointer transition-colors">Política de Privacidade</li>
-                 <li className="hover:text-white cursor-pointer transition-colors">Termos de Uso</li>
-                 <li className="hover:text-white cursor-pointer transition-colors">CRECI 4222J</li>
+              <h4 className="text-sm font-black uppercase tracking-[0.2em] mb-8 text-white">Contato</h4>
+              <ul className="space-y-4 text-sm text-white/70">
+                 <li>
+                    <div className="font-bold text-white/40 uppercase tracking-wider text-xs mb-1">WhatsApp</div>
+                    <div className="text-white font-bold">(44) 99722-3030</div>
+                 </li>
+                 <li>
+                    <div className="font-bold text-white/40 uppercase tracking-wider text-xs mb-1">Email</div>
+                    <div className="text-white font-bold">contato@okaimoveis.com.br</div>
+                 </li>
+                 <li className="pt-2">
+                    <div className="font-bold text-white/40 uppercase tracking-wider text-xs">CRECI 4222J PJ</div>
+                 </li>
               </ul>
            </div>
 
@@ -930,10 +938,10 @@ const LandingPage: React.FC = () => {
         </div>
         
         <div className="max-w-7xl mx-auto pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-sm uppercase tracking-[0.2em] text-white gap-4 px-6 md:px-0">
-           <p>© 2024 Fazendas Brasil - Propriedades Rurais.</p>
+           <p>© 2024 CONVERSAR - Propriedades Rurais.</p>
            <div className="flex gap-8">
               <Link to="/admin" className="hover:text-white/40 transition-colors">Admin Access</Link>
-              <span>Designed by Fazendas Brasil</span>
+              <span>CRECI 4222J PJ</span>
            </div>
         </div>
       </footer>

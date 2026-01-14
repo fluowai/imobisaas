@@ -84,7 +84,7 @@ const ContactForm: React.FC = () => {
                 </div>
                 <div>
                   <div className="text-sm font-bold text-white/40 uppercase tracking-widest mb-1">WhatsApp</div>
-                  <div className="text-white font-bold">(44) 99722-3030</div>
+                  <div className="text-white font-bold">(44) 99843-3030</div>
                 </div>
               </div>
 
@@ -94,7 +94,7 @@ const ContactForm: React.FC = () => {
                 </div>
                 <div>
                   <div className="text-sm font-bold text-white/40 uppercase tracking-widest mb-1">Email</div>
-                  <div className="text-white font-bold">contato@okaimoveis.com.br</div>
+                  <div className="text-white font-bold">contato@fazendasbrasil.com</div>
                 </div>
               </div>
 
@@ -104,7 +104,7 @@ const ContactForm: React.FC = () => {
                 </div>
                 <div>
                   <div className="text-sm font-bold text-white/40 uppercase tracking-widest mb-1">Telefone</div>
-                  <div className="text-white font-bold">(44) 99722-3030</div>
+                  <div className="text-white font-bold">(44) 99843-3030</div>
                 </div>
               </div>
             </div>
