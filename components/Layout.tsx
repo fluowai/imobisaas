@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { 
   LayoutDashboard, 
+  LayoutTemplate,
   Home, 
   Users, 
   Calendar, 
@@ -16,7 +17,8 @@ import {
   Database,
   Settings,
   Menu,
-  X
+  X,
+  Type
 } from 'lucide-react';
 import { MOCK_USER } from '../constants';
 import { useSettings } from '../context/SettingsContext';
@@ -43,11 +45,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
     { icon: Home, label: 'Fazendas & Imóveis', path: '/admin/properties' },
+    { icon: LayoutTemplate, label: 'Landing Pages', path: '/admin/landing-pages' },
     { icon: Users, label: 'Leads & CRM', path: '/admin/crm' },
-    { icon: Settings, label: 'Configurações', path: '/admin/site-config' },
+    { icon: Settings, label: 'Configurações', path: '/admin/settings' },
     { icon: Calendar, label: 'Agenda', path: '/admin/agenda' },
     { icon: FileText, label: 'Contratos', path: '/admin/contracts' },
     { icon: PieChart, label: 'BI & Rural', path: '/admin/reports' },
+    { icon: Type, label: 'Editor de Textos', path: '/admin/texts' },
     { icon: Sparkles, label: 'IA Studio', path: '/admin/ai-assistant' },
     { icon: Database, label: 'Migração', path: '/admin/migration' },
   ];

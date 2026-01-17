@@ -377,6 +377,10 @@ export interface SiteSettings {
       instanceName: string;
       enabled: boolean;
     };
+    groq?: {
+      apiKey: string;
+      model?: string; // Optional model selection
+    };
   };
   // Visual Layout Editor
   layout_config?: LayoutConfig;

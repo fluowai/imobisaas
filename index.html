@@ -31,6 +31,7 @@
         background: #cbd5e1;
       }
     </style>
+    <!-- 
     <script type="importmap">
       {
         "imports": {
@@ -45,11 +46,37 @@
           "react/": "https://esm.sh/react@^19.2.3/"
         }
       }
+    </script> 
+    -->
+    
+    <!-- UTM Parameter Capture - Executa antes do React carregar -->
+    <script>
+      (function() {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const utmData = {};
+          ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'].forEach(function(key) {
+            if (params.has(key)) {
+              utmData[key] = params.get(key);
+            }
+          });
+          if (Object.keys(utmData).length > 0) {
+            sessionStorage.setItem('utm_params', JSON.stringify(utmData));
+            console.log('📊 UTM Parameters captured early:', utmData);
+          }
+        } catch (e) {
+          console.error('Error capturing UTM parameters:', e);
+        }
+      })();
     </script>
+    
     <link rel="stylesheet" href="/index.css" />
   </head>
   <body class="bg-white text-black">
     <div id="root"></div>
+    <script>
+      console.log("HTML: Body loaded, inline script running.");
+    </script>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>

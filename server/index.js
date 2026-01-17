@@ -126,7 +126,12 @@ app.post('/api/send-welcome', async (req, res) => {
 
 // --- CONTACT FORM ENDPOINT ---
 app.post('/api/contact', async (req, res) => {
-    const { name, email, phone, message } = req.body;
+    const { 
+        name, email, phone, message,
+        // Tracking data
+        utm_source, utm_medium, utm_campaign, utm_term, utm_content,
+        referrer_url, landing_page_url, client_id, fbp, fbc, session_data
+    } = req.body;
     
     // Validation
     if (!name || !email || !phone || !message) {
@@ -135,6 +140,9 @@ app.post('/api/contact', async (req, res) => {
     
     try {
         console.log(`📧 Novo contato recebido de: ${name} (${email})`);
+        if (utm_source) {
+            console.log(`📊 Origem: ${utm_source} / ${utm_medium} / ${utm_campaign}`);
+        }
         
         // 1. Get site settings for contact email and WhatsApp template
         const { data: settingsData, error: settingsError } = await supabase
@@ -150,16 +158,28 @@ app.post('/api/contact', async (req, res) => {
         const whatsappTemplate = settingsData?.contact_whatsapp_template || 
             'Olá {name}! Recebemos seu contato através do formulário "Fale Conosco". Nossa equipe já está analisando sua mensagem e entrará em contato em breve. Obrigado!';
         
-        // 2. Create lead in CRM
+        // 2. Create lead in CRM with tracking data
         const { data: leadData, error: leadError } = await supabase
             .from('crm_leads')
             .insert([{
                 name,
                 email,
                 phone,
-                source: 'Fale Conosco',
+                source: utm_source || 'Fale Conosco',
                 status: 'Novo',
-                notes: message
+                notes: message,
+                // Tracking fields
+                utm_source,
+                utm_medium,
+                utm_campaign,
+                utm_term,
+                utm_content,
+                referrer_url,
+                landing_page_url,
+                client_id,
+                fbp,
+                fbc,
+                session_data: session_data ? JSON.stringify(session_data) : null
             }])
             .select()
             .single();
@@ -225,6 +245,225 @@ app.post('/api/contact', async (req, res) => {
         res.status(500).json({ 
             error: 'Erro ao processar seu contato. Por favor, tente novamente.' 
         });
+    }
+});
+
+
+// ============================================
+// SITE TEXTS API - Sistema de Textos Editáveis
+// ============================================
+
+// GET /api/texts - Listar todos os textos
+app.get('/api/texts', async (req, res) => {
+    try {
+        const { category, section } = req.query;
+        
+        let query = supabase.from('site_texts').select('*');
+        
+        if (category) {
+            query = query.eq('category', category);
+        }
+        
+        if (section) {
+            query = query.eq('section', section);
+        }
+        
+        const { data, error } = await query.order('section', { ascending: true });
+        
+        if (error) {
+            console.error('❌ Erro ao buscar textos:', error);
+            return res.status(500).json({ error: 'Erro ao buscar textos' });
+        }
+        
+        // Transformar array em objeto chave-valor para facilitar uso no frontend
+        const textsMap = {};
+        data.forEach(text => {
+            textsMap[text.key] = text.value;
+        });
+        
+        res.json({ 
+            success: true, 
+            texts: textsMap,
+            raw: data // Enviar também os dados completos para o admin
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao processar textos:', error);
+        res.status(500).json({ error: 'Erro ao processar textos' });
+    }
+});
+
+// GET /api/texts/:key - Buscar texto específico
+app.get('/api/texts/:key', async (req, res) => {
+    try {
+        const { key } = req.params;
+        
+        const { data, error } = await supabase
+            .from('site_texts')
+            .select('*')
+            .eq('key', key)
+            .single();
+        
+        if (error) {
+            if (error.code === 'PGRST116') {
+                return res.status(404).json({ error: 'Texto não encontrado' });
+            }
+            console.error('❌ Erro ao buscar texto:', error);
+            return res.status(500).json({ error: 'Erro ao buscar texto' });
+        }
+        
+        res.json({ success: true, text: data });
+        
+    } catch (error) {
+        console.error('❌ Erro ao processar texto:', error);
+        res.status(500).json({ error: 'Erro ao processar texto' });
+    }
+});
+
+// PUT /api/texts/:key - Atualizar texto específico
+app.put('/api/texts/:key', async (req, res) => {
+    try {
+        const { key } = req.params;
+        const { value } = req.body;
+        
+        if (!value) {
+            return res.status(400).json({ error: 'Valor é obrigatório' });
+        }
+        
+        const { data, error } = await supabase
+            .from('site_texts')
+            .update({ value, updated_at: new Date().toISOString() })
+            .eq('key', key)
+            .select()
+            .single();
+        
+        if (error) {
+            console.error('❌ Erro ao atualizar texto:', error);
+            return res.status(500).json({ error: 'Erro ao atualizar texto' });
+        }
+        
+        console.log(`✅ Texto atualizado: ${key} = "${value}"`);
+        res.json({ success: true, text: data });
+        
+    } catch (error) {
+        console.error('❌ Erro ao processar atualização:', error);
+        res.status(500).json({ error: 'Erro ao processar atualização' });
+    }
+});
+
+// POST /api/texts/bulk - Atualização em massa
+app.post('/api/texts/bulk', async (req, res) => {
+    try {
+        const { updates } = req.body; // Array de { key, value }
+        
+        if (!Array.isArray(updates) || updates.length === 0) {
+            return res.status(400).json({ error: 'Updates deve ser um array não vazio' });
+        }
+        
+        console.log(`📝 Atualizando ${updates.length} textos em massa...`);
+        
+        const results = [];
+        const errors = [];
+        
+        for (const update of updates) {
+            try {
+                const { data, error } = await supabase
+                    .from('site_texts')
+                    .update({ value: update.value, updated_at: new Date().toISOString() })
+                    .eq('key', update.key)
+                    .select()
+                    .single();
+                
+                if (error) {
+                    errors.push({ key: update.key, error: error.message });
+                } else {
+                    results.push(data);
+                }
+            } catch (err) {
+                errors.push({ key: update.key, error: err.message });
+            }
+        }
+        
+        console.log(`✅ Atualizados: ${results.length}, ❌ Erros: ${errors.length}`);
+        
+        res.json({ 
+            success: true, 
+            updated: results.length,
+            errors: errors.length,
+            results,
+            errorDetails: errors
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao processar atualização em massa:', error);
+        res.status(500).json({ error: 'Erro ao processar atualização em massa' });
+    }
+});
+
+// POST /api/texts/seed - Popular textos iniciais (apenas para setup)
+app.post('/api/texts/seed', async (req, res) => {
+    try {
+        console.log('🌱 Iniciando seed de textos...');
+        
+        // Verificar se já existem textos
+        const { count } = await supabase
+            .from('site_texts')
+            .select('*', { count: 'exact', head: true });
+        
+        if (count > 0) {
+            return res.status(400).json({ 
+                error: 'Textos já existem no banco. Use /api/texts/bulk para atualizar.' 
+            });
+        }
+        
+        // Executar seed (na prática, o seed SQL já foi executado)
+        // Este endpoint é apenas para referência/debug
+        res.json({ 
+            success: true, 
+            message: 'Execute o arquivo seed_site_texts.sql no Supabase SQL Editor' 
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao processar seed:', error);
+        res.status(500).json({ error: 'Erro ao processar seed' });
+    }
+});
+
+// DELETE /api/texts/:key - Deletar texto (restaura para default)
+app.delete('/api/texts/:key', async (req, res) => {
+    try {
+        const { key } = req.params;
+        
+        // Buscar o valor padrão
+        const { data: textData, error: fetchError } = await supabase
+            .from('site_texts')
+            .select('default_value')
+            .eq('key', key)
+            .single();
+        
+        if (fetchError) {
+            return res.status(404).json({ error: 'Texto não encontrado' });
+        }
+        
+        // Restaurar para o valor padrão
+        const { data, error } = await supabase
+            .from('site_texts')
+            .update({ value: textData.default_value, updated_at: new Date().toISOString() })
+            .eq('key', key)
+            .select()
+            .single();
+        
+        if (error) {
+            console.error('❌ Erro ao restaurar texto:', error);
+            return res.status(500).json({ error: 'Erro ao restaurar texto' });
+        }
+        
+        console.log(`🔄 Texto restaurado para padrão: ${key}`);
+        res.json({ success: true, text: data, message: 'Texto restaurado para o valor padrão' });
+        
+    } catch (error) {
+        console.error('❌ Erro ao processar restauração:', error);
+        res.status(500).json({ error: 'Erro ao processar restauração' });
     }
 });
 

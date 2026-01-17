@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Home, Phone, Mail, Instagram, Facebook, Youtube, ChevronDown, User, Menu, X, MessageCircle } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
+import { useTexts } from '../context/TextsContext';
 import { useNavigate } from 'react-router-dom';
 
 const SiteHeader: React.FC = () => {
   const { settings } = useSettings();
+  const { t } = useTexts();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -37,14 +39,14 @@ const SiteHeader: React.FC = () => {
       {/* 1. TOP BAR (Primary Color) */}
       <div className="w-full text-white text-[11px] font-bold py-2 px-4 md:px-6 flex justify-between items-center" style={{ backgroundColor: settings.primaryColor }}>
         <div className="flex flex-wrap gap-4 md:gap-8 items-center">
-            <span>CRECI/PR 4.222J</span>
-            <button className="hover:underline">Cadastre sua Propriedade Rural</button>
+            <span>{t('header.creci', 'CRECI/PR 4.222J')}</span>
+            <button className="hover:underline">{t('header.cta_register', 'Cadastre sua Propriedade Rural')}</button>
         </div>
         <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-2">
-                <span className="opacity-80">TRADUZIR SITE:</span>
+                <span className="opacity-80">{t('header.translate_label', 'TRADUZIR SITE:')}</span>
                 <select className="bg-white text-black text-xs rounded px-2 py-0.5 outline-none cursor-pointer">
-                    <option>Selecione o idioma</option>
+                    <option>{t('header.language_select', 'Selecione o idioma')}</option>
                     <option>Português</option>
                     <option>English</option>
                     <option>Español</option>
@@ -55,7 +57,7 @@ const SiteHeader: React.FC = () => {
                 className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded flex items-center gap-2 transition-colors"
             >
                 <User size={12} />
-                Acessar Sistema
+                {t('header.login_button', 'Acessar Sistema')}
             </button>
         </div>
       </div>
@@ -73,8 +75,12 @@ const SiteHeader: React.FC = () => {
                              I
                          </div>
                          <div className="flex flex-col">
-                             <span className="text-3xl font-serif text-slate-800 tracking-tight leading-none">ImobiSaaS</span>
-                             <span className="text-[10px] uppercase tracking-widest text-slate-400">Propriedades Rurais</span>
+                             <span className="text-3xl font-serif text-slate-800 tracking-tight leading-none">
+                               {t('header.logo_fallback_name', 'ImobiSaaS')}
+                             </span>
+                             <span className="text-[10px] uppercase tracking-widest text-slate-400">
+                               {t('header.logo_fallback_subtitle', 'Propriedades Rurais')}
+                             </span>
                          </div>
                     </div>
                  )}
@@ -85,21 +91,21 @@ const SiteHeader: React.FC = () => {
                 <div className="flex items-center gap-3">
                     <MessageCircle size={28} style={{ color: settings.primaryColor }} /> {/* Using MessageCircle for WhatsApp */}
                     <div className="flex flex-col leading-tight">
-                        <span className="text-sm font-bold">WhatsApp</span>
+                        <span className="text-sm font-bold">{t('header.contact_whatsapp_label', 'WhatsApp')}</span>
                         <span className="text-sm text-slate-500">(44) 99843-3030</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <Phone size={28} style={{ color: settings.primaryColor }} />
                     <div className="flex flex-col leading-tight">
-                        <span className="text-sm font-bold">Telefone</span>
+                        <span className="text-sm font-bold">{t('header.contact_phone_label', 'Telefone')}</span>
                          <span className="text-sm text-slate-500">(44) 99843-3030</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <Mail size={28} style={{ color: settings.primaryColor }} />
                     <div className="flex flex-col leading-tight">
-                        <span className="text-sm font-bold">Email</span>
+                        <span className="text-sm font-bold">{t('header.contact_email_label', 'Email')}</span>
                          <span className="text-sm text-slate-500">contato@fazendasbrasil.com</span>
                     </div>
                 </div>
@@ -117,13 +123,13 @@ const SiteHeader: React.FC = () => {
          <div className="max-w-7xl mx-auto px-4 md:px-6 h-[50px] flex items-center justify-between text-white">
              {/* Links */}
              <nav className="flex items-center gap-0 h-full">
-                 <NavItem label="Início" onClick={() => navigate('/')} />
-                 <NavItem label="Sobre Nós" hasDropdown />
-                 <NavItem label="Fazendas" onClick={scrollToProperties} />
-                 <NavItem label="Sítios" onClick={scrollToProperties} />
-                 <NavItem label="Terras Produtivas" onClick={scrollToProperties} />
-                 <NavItem label="Blog" onClick={() => {}} />
-                 <NavItem label="Contato" onClick={scrollToContact} />
+                 <NavItem label={t('nav.home', 'Início')} onClick={() => navigate('/')} />
+                 <NavItem label={t('nav.about', 'Sobre Nós')} hasDropdown />
+                 <NavItem label={t('nav.farms', 'Fazendas')} onClick={scrollToProperties} />
+                 <NavItem label={t('nav.ranches', 'Sítios')} onClick={scrollToProperties} />
+                 <NavItem label={t('nav.lands', 'Terras Produtivas')} onClick={scrollToProperties} />
+                 <NavItem label={t('nav.blog', 'Blog')} onClick={() => {}} />
+                 <NavItem label={t('nav.contact', 'Contato')} onClick={scrollToContact} />
              </nav>
 
              {/* Socials */}
@@ -139,12 +145,12 @@ const SiteHeader: React.FC = () => {
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-t">
              <div className="flex flex-col text-sm font-bold text-slate-700">
-                <a onClick={() => { navigate('/'); setMobileMenuOpen(false); }} className="px-6 py-4 border-b hover:bg-slate-50">Início</a>
-                <a className="px-6 py-4 border-b hover:bg-slate-50">Sobre Nós</a>
-                <a onClick={() => { scrollToProperties(); setMobileMenuOpen(false); }} className="px-6 py-4 border-b hover:bg-slate-50">Fazendas</a>
-                <a onClick={() => { scrollToProperties(); setMobileMenuOpen(false); }} className="px-6 py-4 border-b hover:bg-slate-50">Sítios</a>
-                <a onClick={() => { scrollToProperties(); setMobileMenuOpen(false); }} className="px-6 py-4 border-b hover:bg-slate-50">Terras Produtivas</a>
-                <a onClick={() => { scrollToContact(); setMobileMenuOpen(false); }} className="px-6 py-4 border-b hover:bg-slate-50">Contato</a>
+                <a onClick={() => { navigate('/'); setMobileMenuOpen(false); }} className="px-6 py-4 border-b hover:bg-slate-50">{t('nav.home', 'Início')}</a>
+                <a className="px-6 py-4 border-b hover:bg-slate-50">{t('nav.about', 'Sobre Nós')}</a>
+                <a onClick={() => { scrollToProperties(); setMobileMenuOpen(false); }} className="px-6 py-4 border-b hover:bg-slate-50">{t('nav.farms', 'Fazendas')}</a>
+                <a onClick={() => { scrollToProperties(); setMobileMenuOpen(false); }} className="px-6 py-4 border-b hover:bg-slate-50">{t('nav.ranches', 'Sítios')}</a>
+                <a onClick={() => { scrollToProperties(); setMobileMenuOpen(false); }} className="px-6 py-4 border-b hover:bg-slate-50">{t('nav.lands', 'Terras Produtivas')}</a>
+                <a onClick={() => { scrollToContact(); setMobileMenuOpen(false); }} className="px-6 py-4 border-b hover:bg-slate-50">{t('nav.contact', 'Contato')}</a>
                 <div className="px-6 py-4 bg-slate-50 flex gap-4 justify-center">
                     <SocialIcon icon={<Youtube size={20} />} dark />
                     <SocialIcon icon={<Instagram size={20} />} dark />

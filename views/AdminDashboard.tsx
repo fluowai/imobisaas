@@ -10,6 +10,7 @@ import {
   Calendar,
   MoreVertical
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { 
   BarChart, 
   Bar, 
@@ -101,7 +102,7 @@ const AdminDashboard: React.FC = () => {
         <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-lg font-bold text-black">Leads Recentes</h3>
-            <button className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">Ver todos</button>
+            <Link to="/admin/crm" className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">Ver todos</Link>
           </div>
           <div className="space-y-6">
             {MOCK_LEADS.map((lead) => (

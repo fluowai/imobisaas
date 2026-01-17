@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MessageCircle, Send, CheckCircle2, Loader2 } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
+import { useTexts } from '../context/TextsContext';
 import axios from 'axios';
 
 const ContactForm: React.FC = () => {
   const { settings } = useSettings();
+  const { t } = useTexts();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -29,11 +31,37 @@ const ContactForm: React.FC = () => {
     setSubmitError('');
 
     try {
-      const response = await axios.post('http://localhost:3002/api/contact', formData);
+      // Importar função de tracking
+      const { getTrackingData, trackFacebookEvent, trackGoogleEvent } = await import('../utils/tracking');
+      
+      // Capturar dados de tracking
+      const trackingData = getTrackingData();
+      
+      // Enviar formulário com dados de tracking
+      const response = await axios.post('http://localhost:3002/api/contact', {
+        ...formData,
+        ...trackingData
+      });
       
       if (response.data.success) {
         setSubmitSuccess(true);
         setFormData({ name: '', email: '', phone: '', message: '' });
+        
+        // Disparar eventos de conversão nos pixels
+        trackFacebookEvent('Lead', {
+          content_name: 'Contact Form',
+          content_category: 'Contact',
+          value: 0,
+          currency: 'BRL'
+        });
+        
+        trackGoogleEvent('generate_lead', {
+          event_category: 'Contact',
+          event_label: 'Contact Form',
+          value: 0
+        });
+        
+        console.log('✅ Lead criado com tracking data:', trackingData);
         
         // Reset success message after 5 seconds
         setTimeout(() => {
@@ -64,16 +92,15 @@ const ContactForm: React.FC = () => {
           {/* Left Column - Info */}
           <div className="text-white">
             <div className="inline-block px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.3em] bg-green-600/20 border border-green-600/30 text-green-400 mb-8">
-              Fale Conosco
+              {t('contact.badge', 'Fale Conosco')}
             </div>
             
             <h2 className="text-5xl md:text-6xl font-black uppercase italic leading-tight mb-8 tracking-tighter">
-              Vamos Conversar<span className="text-green-600">?</span>
+              {t('contact.title', 'Vamos Conversar')}<span className="text-green-600">?</span>
             </h2>
             
             <p className="text-white/60 text-lg leading-relaxed mb-12">
-              Nossa equipe de especialistas está pronta para ajudá-lo a encontrar a propriedade rural perfeita. 
-              Entre em contato e descubra as melhores oportunidades do mercado.
+              {t('contact.description', 'Nossa equipe de especialistas está pronta para ajudá-lo a encontrar a propriedade rural perfeita. Entre em contato e descubra as melhores oportunidades do mercado.')}
             </p>
 
             {/* Contact Info Cards */}
@@ -83,8 +110,8 @@ const ContactForm: React.FC = () => {
                   <MessageCircle size={24} className="text-green-600 group-hover:text-white transition-colors" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-white/40 uppercase tracking-widest mb-1">WhatsApp</div>
-                  <div className="text-white font-bold">(44) 99843-3030</div>
+                  <div className="text-sm font-bold text-white/40 uppercase tracking-widest mb-1">{t('contact.whatsapp_label', 'WhatsApp')}</div>
+                  <div className="text-white font-bold">{settings.contactPhone || '(44) 99843-3030'}</div>
                 </div>
               </div>
 
@@ -93,8 +120,8 @@ const ContactForm: React.FC = () => {
                   <Mail size={24} className="text-green-600 group-hover:text-white transition-colors" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-white/40 uppercase tracking-widest mb-1">Email</div>
-                  <div className="text-white font-bold">contato@fazendasbrasil.com</div>
+                  <div className="text-sm font-bold text-white/40 uppercase tracking-widest mb-1">{t('contact.email_label', 'Email')}</div>
+                  <div className="text-white font-bold">{settings.contactEmail || 'contato@fazendasbrasil.com'}</div>
                 </div>
               </div>
 
@@ -103,8 +130,8 @@ const ContactForm: React.FC = () => {
                   <Phone size={24} className="text-green-600 group-hover:text-white transition-colors" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-white/40 uppercase tracking-widest mb-1">Telefone</div>
-                  <div className="text-white font-bold">(44) 99843-3030</div>
+                  <div className="text-sm font-bold text-white/40 uppercase tracking-widest mb-1">{t('contact.phone_label', 'Telefone')}</div>
+                  <div className="text-white font-bold">{settings.contactPhone || '(44) 99843-3030'}</div>
                 </div>
               </div>
             </div>
@@ -116,9 +143,9 @@ const ContactForm: React.FC = () => {
             {submitSuccess && (
               <div className="absolute inset-0 bg-green-600 rounded-3xl flex flex-col items-center justify-center z-20 animate-in fade-in duration-300">
                 <CheckCircle2 size={64} className="text-white mb-6" />
-                <h3 className="text-2xl font-black text-white mb-2">Mensagem Enviada!</h3>
+                <h3 className="text-2xl font-black text-white mb-2">{t('contact.submit_success_title', 'Mensagem Enviada!')}</h3>
                 <p className="text-white/80 text-center px-8">
-                  Recebemos seu contato. Nossa equipe entrará em contato em breve!
+                  {t('contact.submit_success_message', 'Recebemos seu contato. Nossa equipe entrará em contato em breve!')}
                 </p>
               </div>
             )}
@@ -128,7 +155,7 @@ const ContactForm: React.FC = () => {
                 {/* Name */}
                 <div>
                   <label className="block text-sm font-bold text-white/60 uppercase tracking-widest mb-3">
-                    Nome Completo
+                    {t('contact.form_name_label', 'Nome Completo')}
                   </label>
                   <input
                     type="text"
@@ -137,14 +164,14 @@ const ContactForm: React.FC = () => {
                     onChange={handleChange}
                     required
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-6 py-4 text-white placeholder:text-white/30 focus:outline-none focus:border-green-600 transition-all"
-                    placeholder="Seu nome"
+                    placeholder={t('contact.form_name_placeholder', 'Seu nome')}
                   />
                 </div>
 
                 {/* Email */}
                 <div>
                   <label className="block text-sm font-bold text-white/60 uppercase tracking-widest mb-3">
-                    Email
+                    {t('contact.form_email_label', 'Email')}
                   </label>
                   <input
                     type="email"
@@ -153,14 +180,14 @@ const ContactForm: React.FC = () => {
                     onChange={handleChange}
                     required
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-6 py-4 text-white placeholder:text-white/30 focus:outline-none focus:border-green-600 transition-all"
-                    placeholder="seu@email.com"
+                    placeholder={t('contact.form_email_placeholder', 'seu@email.com')}
                   />
                 </div>
 
                 {/* Phone */}
                 <div>
                   <label className="block text-sm font-bold text-white/60 uppercase tracking-widest mb-3">
-                    Telefone / WhatsApp
+                    {t('contact.form_phone_label', 'Telefone / WhatsApp')}
                   </label>
                   <input
                     type="tel"
@@ -169,14 +196,14 @@ const ContactForm: React.FC = () => {
                     onChange={handleChange}
                     required
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-6 py-4 text-white placeholder:text-white/30 focus:outline-none focus:border-green-600 transition-all"
-                    placeholder="(00) 00000-0000"
+                    placeholder={t('contact.form_phone_placeholder', '(00) 00000-0000')}
                   />
                 </div>
 
                 {/* Message */}
                 <div>
                   <label className="block text-sm font-bold text-white/60 uppercase tracking-widest mb-3">
-                    Mensagem
+                    {t('contact.form_message_label', 'Mensagem')}
                   </label>
                   <textarea
                     name="message"
@@ -185,7 +212,7 @@ const ContactForm: React.FC = () => {
                     required
                     rows={5}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-6 py-4 text-white placeholder:text-white/30 focus:outline-none focus:border-green-600 transition-all resize-none"
-                    placeholder="Como podemos ajudá-lo?"
+                    placeholder={t('contact.form_message_placeholder', 'Como podemos ajudá-lo?')}
                   />
                 </div>
 
@@ -210,7 +237,7 @@ const ContactForm: React.FC = () => {
                   ) : (
                     <>
                       <Send size={20} className="group-hover:translate-x-1 transition-transform" />
-                      Enviar Mensagem
+                      {t('contact.submit_button', 'Enviar Mensagem')}
                     </>
                   )}
                 </button>

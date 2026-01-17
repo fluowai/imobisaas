@@ -5,6 +5,7 @@ import { MOCK_PROPERTIES } from '../constants';
 import { Link, useNavigate } from 'react-router-dom';
 import { Property, PropertyType, PropertyPurpose, PropertyAptitude } from '../types';
 import { useSettings } from '../context/SettingsContext';
+import { useTexts } from '../context/TextsContext';
 import { propertyService } from '../services/properties';
 import { leadService } from '../services/leads';
 import { uploadFile } from '../services/storage';
@@ -34,6 +35,7 @@ const LandingPage: React.FC = () => {
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const navigate = useNavigate();
   const { settings } = useSettings();
+  const { t } = useTexts();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -248,7 +250,9 @@ const LandingPage: React.FC = () => {
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-8 shadow-2xl">
               <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-              <span className="text-[10px] font-black uppercase text-white/90 tracking-[0.3em] font-sans">Terras Produtivas & Investimento Rural</span>
+              <span className="text-[10px] font-black uppercase text-white/90 tracking-[0.3em] font-sans">
+                {t('hero.badge', 'Terras Produtivas & Investimento Rural')}
+              </span>
             </div>
             <h1 
               className="font-black text-white mb-6 leading-[0.85] uppercase italic tracking-tighter" 
@@ -258,11 +262,11 @@ const LandingPage: React.FC = () => {
                 fontFamily: 'Playfair Display, serif'
               }}
             >
-              <div className="block" style={{ transform: 'skewX(-5deg)' }}>TERRA</div>
-              <div className="block text-transparent bg-clip-text bg-gradient-to-b from-green-200 to-green-500" style={{ transform: 'skewX(-5deg)' }}>PRODUTIVA</div>
+              <div className="block" style={{ transform: 'skewX(-5deg)' }}>{t('hero.title_line1', 'TERRA')}</div>
+              <div className="block text-transparent bg-clip-text bg-gradient-to-b from-green-200 to-green-500" style={{ transform: 'skewX(-5deg)' }}>{t('hero.title_line2', 'PRODUTIVA')}</div>
             </h1>
             <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto font-medium leading-relaxed italic drop-shadow-md font-serif">
-              Fazendas, sítios e propriedades rurais de alto valor. <br className="hidden md:block"/> Seu investimento no agronegócio começa aqui.
+              {t('hero.subtitle', 'Fazendas, sítios e propriedades rurais de alto valor. Seu investimento no agronegócio começa aqui.')}
             </p>
           </div>
 
@@ -276,30 +280,30 @@ const LandingPage: React.FC = () => {
                 {/* Filter 1: Property Type */}
                 <div className="relative">
                   <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 block">
-                    Tipo
+                    {t('hero.search.type_label', 'Tipo')}
                   </label>
                   <select
                     value={propertyType}
                     onChange={(e) => setPropertyType(e.target.value)}
                     className="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium outline-none focus:border-green-500 focus:bg-white transition-all"
                   >
-                    <option value="">Todos</option>
-                    <option value="Fazenda">Fazenda</option>
-                    <option value="Sítio">Sítio</option>
-                    <option value="Chácara">Chácara</option>
+                    <option value="">{t('hero.search.type_all', 'Todos')}</option>
+                    <option value="Fazenda">{t('hero.search.type_farm', 'Fazenda')}</option>
+                    <option value="Sítio">{t('hero.search.type_ranch', 'Sítio')}</option>
+                    <option value="Chácara">{t('hero.search.type_smallfarm', 'Chácara')}</option>
                   </select>
                 </div>
 
                 {/* Filter 2: City */}
                 <div className="relative">
                   <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 block">
-                    Cidade
+                    {t('hero.search.city_label', 'Cidade')}
                   </label>
                   <input
                     type="text"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    placeholder="Ex: São Paulo"
+                    placeholder={t('hero.search.city_placeholder', 'Ex: São Paulo')}
                     className="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium outline-none focus:border-green-500 focus:bg-white transition-all placeholder:text-slate-300"
                   />
                 </div>
@@ -307,7 +311,7 @@ const LandingPage: React.FC = () => {
                 {/* Filter 3: Min Hectares */}
                 <div className="relative">
                   <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 block">
-                    Área Mín (ha)
+                    {t('hero.search.min_area_label', 'Área Mín (ha)')}
                   </label>
                   <input
                     type="number"
@@ -321,7 +325,7 @@ const LandingPage: React.FC = () => {
                 {/* Filter 4: Max Hectares */}
                 <div className="relative">
                   <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 block">
-                    Área Máx (ha)
+                    {t('hero.search.max_area_label', 'Área Máx (ha)')}
                   </label>
                   <input
                     type="number"
@@ -342,7 +346,7 @@ const LandingPage: React.FC = () => {
                     style={{ backgroundColor: settings.primaryColor }}
                   >
                     <Search size={18} />
-                    Buscar
+                    {t('hero.search.button', 'Buscar')}
                   </button>
                 </div>
 
@@ -355,7 +359,7 @@ const LandingPage: React.FC = () => {
                     <span className="font-black" style={{ color: settings.primaryColor }}>
                       {filteredProperties.length}
                     </span>
-                    {' '}propriedade{filteredProperties.length !== 1 ? 's' : ''} encontrada{filteredProperties.length !== 1 ? 's' : ''}
+                    {' '}{t('hero.search.results_found', 'propriedade(s) encontrada(s)')}
                     {(propertyType || city || minHectares || maxHectares) && (
                       <button
                         onClick={() => {
@@ -367,7 +371,7 @@ const LandingPage: React.FC = () => {
                         className="ml-4 text-xs font-bold underline hover:no-underline"
                         style={{ color: settings.primaryColor }}
                       >
-                        Limpar filtros
+                        {t('hero.search.clear_filters', 'Limpar filtros')}
                       </button>
                     )}
                   </p>
@@ -600,13 +604,13 @@ const LandingPage: React.FC = () => {
           {/* Header */}
           <div className="text-center mb-20">
             <h2 className="text-5xl md:text-7xl font-black uppercase mb-6" style={{ color: settings.primaryColor }}>
-              Nossos Serviços
+              {t('services.title', 'Nossos Serviços')}
             </h2>
             <p className="text-2xl md:text-3xl font-bold mb-4" style={{ color: settings.secondaryColor }}>
-              Especialistas em Propriedades Rurais
+              {t('services.subtitle', 'Especialistas em Propriedades Rurais')}
             </p>
             <p className="text-slate-600 text-lg max-w-3xl mx-auto leading-relaxed">
-              Conectamos investidores a fazendas e sítios de alto potencial produtivo. Experiência comprovada no mercado de terras rurais do Brasil.
+              {t('services.description', 'Conectamos investidores a fazendas e sítios de alto potencial produtivo. Experiência comprovada no mercado de terras rurais do Brasil.')}
             </p>
           </div>
 
@@ -628,23 +632,23 @@ const LandingPage: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
-                  <h3 className="text-2xl font-black text-white uppercase">Compra</h3>
+                  <h3 className="text-2xl font-black text-white uppercase">{t('services.buy.title', 'Compra')}</h3>
                 </div>
               </div>
               <div className="p-8">
-                <h4 className="text-2xl font-bold mb-4 text-slate-900">Aquisição de Fazendas e Sítios</h4>
+                <h4 className="text-2xl font-bold mb-4 text-slate-900">{t('services.buy.subtitle', 'Aquisição de Fazendas e Sítios')}</h4>
                 <ul className="space-y-3 text-slate-600">
                   <li className="flex items-start gap-3">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>Análise técnica de solo e recursos hídricos</span>
+                    <span>{t('services.buy.feature1', 'Análise técnica de solo e recursos hídricos')}</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>Avaliação de potencial produtivo e rentabilidade</span>
+                    <span>{t('services.buy.feature2', 'Avaliação de potencial produtivo e rentabilidade')}</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>Due diligence completa e segurança jurídica</span>
+                    <span>{t('services.buy.feature3', 'Due diligence completa e segurança jurídica')}</span>
                   </li>
                 </ul>
               </div>
@@ -665,23 +669,23 @@ const LandingPage: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <h3 className="text-2xl font-black text-white uppercase">Venda</h3>
+                  <h3 className="text-2xl font-black text-white uppercase">{t('services.sell.title', 'Venda')}</h3>
                 </div>
               </div>
               <div className="p-8">
-                <h4 className="text-2xl font-bold mb-4 text-slate-900">Comercialização Estratégica</h4>
+                <h4 className="text-2xl font-bold mb-4 text-slate-900">{t('services.sell.subtitle', 'Comercialização Estratégica')}</h4>
                 <ul className="space-y-3 text-slate-600">
                   <li className="flex items-start gap-3">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>Marketing direcionado a investidores qualificados</span>
+                    <span>{t('services.sell.feature1', 'Marketing direcionado a investidores qualificados')}</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>Precificação baseada em análise de mercado</span>
+                    <span>{t('services.sell.feature2', 'Precificação baseada em análise de mercado')}</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>Negociação profissional e confidencial</span>
+                    <span>{t('services.sell.feature3', 'Negociação profissional e confidencial')}</span>
                   </li>
                 </ul>
               </div>
@@ -702,23 +706,23 @@ const LandingPage: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
-                  <h3 className="text-2xl font-black text-white uppercase">Consultoria</h3>
+                  <h3 className="text-2xl font-black text-white uppercase">{t('services.consulting.title', 'Consultoria')}</h3>
                 </div>
               </div>
               <div className="p-8">
-                <h4 className="text-2xl font-bold mb-4 text-slate-900">Assessoria Especializada</h4>
+                <h4 className="text-2xl font-bold mb-4 text-slate-900">{t('services.consulting.subtitle', 'Assessoria Especializada')}</h4>
                 <ul className="space-y-3 text-slate-600">
                   <li className="flex items-start gap-3">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>Regularização fundiária e ambiental</span>
+                    <span>{t('services.consulting.feature1', 'Regularização fundiária e ambiental')}</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>Planejamento de uso e viabilidade econômica</span>
+                    <span>{t('services.consulting.feature2', 'Planejamento de uso e viabilidade econômica')}</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>Suporte em financiamento e crédito rural</span>
+                    <span>{t('services.consulting.feature3', 'Suporte em financiamento e crédito rural')}</span>
                   </li>
                 </ul>
               </div>
@@ -756,8 +760,8 @@ const LandingPage: React.FC = () => {
                         </svg>
                       </div>
                       <div>
-                        <p className="text-xs font-black uppercase tracking-wider text-slate-400">Especialista Certificado</p>
-                        <p className="text-sm font-bold text-slate-900">CRECI Ativo • 20+ Anos</p>
+                        <p className="text-xs font-black uppercase tracking-wider text-slate-400">{t('about.creci_badge', 'Especialista Certificado')}</p>
+                        <p className="text-sm font-bold text-slate-900">{t('about.creci_info', 'CRECI Ativo • 20+ Anos')}</p>
                       </div>
                     </div>
                   </div>
@@ -766,8 +770,8 @@ const LandingPage: React.FC = () => {
                 {/* Stats cards */}
                 <div className="absolute -right-8 top-1/4 hidden lg:block">
                   <div className="bg-white rounded-2xl shadow-xl p-6 w-32">
-                    <p className="text-3xl font-black mb-1" style={{ color: settings.primaryColor }}>500+</p>
-                    <p className="text-xs font-bold text-slate-600">Propriedades Vendidas</p>
+                    <p className="text-3xl font-black mb-1" style={{ color: settings.primaryColor }}>{t('about.stat_properties', '500+')}</p>
+                    <p className="text-xs font-bold text-slate-600">{t('about.stat_properties_label', 'Propriedades Vendidas')}</p>
                   </div>
                 </div>
               </div>
@@ -776,15 +780,15 @@ const LandingPage: React.FC = () => {
             {/* Right: Content */}
             <div>
               <span className="text-xs font-black uppercase tracking-[0.3em] mb-4 block" style={{ color: settings.primaryColor }}>
-                Especialista
+                {t('about.badge', 'Especialista')}
               </span>
               
               <h2 className="text-4xl md:text-5xl font-black uppercase leading-tight mb-6" style={{ color: settings.secondaryColor }}>
-                Mais de 20 Anos no Mercado Rural
+                {t('about.title', 'Mais de 20 Anos no Mercado Rural')}
               </h2>
               
               <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-                Conectamos investidores e produtores rurais às melhores oportunidades em fazendas e sítios produtivos. Nossa experiência no agronegócio brasileiro garante segurança e rentabilidade em cada transação.
+                {t('about.description', 'Conectamos investidores e produtores rurais às melhores oportunidades em fazendas e sítios produtivos. Nossa experiência no agronegócio brasileiro garante segurança e rentabilidade em cada transação.')}
               </p>
 
               {/* Features list */}
@@ -796,8 +800,8 @@ const LandingPage: React.FC = () => {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-bold text-slate-900 mb-1">Análise Técnica Completa</h4>
-                    <p className="text-sm text-slate-600">Avaliação de solo, recursos hídricos e potencial produtivo</p>
+                    <h4 className="font-bold text-slate-900 mb-1">{t('about.feature1_title', 'Análise Técnica Completa')}</h4>
+                    <p className="text-sm text-slate-600">{t('about.feature1_desc', 'Avaliação de solo, recursos hídricos e potencial produtivo')}</p>
                   </div>
                 </div>
 
@@ -876,7 +880,7 @@ const LandingPage: React.FC = () => {
            <div className="md:col-span-1">
               <h2 className="text-3xl font-black mb-8 tracking-tight text-white" style={{ fontFamily: 'Arial, sans-serif' }}>CONVERSAR<span className="text-green-600">.</span></h2>
               <p className="text-white/70 text-sm leading-relaxed mb-8">
-                 Nossa equipe de especialistas está pronta para ajudá-lo a encontrar a propriedade rural perfeita. Entre em contato e descubra as melhores oportunidades do mercado.
+                 {t('about.description', 'Nossa equipe de especialistas está pronta para ajudá-lo a encontrar a propriedade rural perfeita. Entre em contato e descubra as melhores oportunidades do mercado.')}
               </p>
               <div className="flex gap-4">
                  <button className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white hover:text-black transition-all group"><Instagram size={16} className="opacity-60 group-hover:opacity-100" /></button>
@@ -891,37 +895,37 @@ const LandingPage: React.FC = () => {
               <ul className="space-y-4 text-base font-bold text-white tracking-widest uppercase">
                  <li className="hover:text-white cursor-pointer transition-colors flex items-center gap-2 group">
                     <span className="w-0 group-hover:w-2 h-px bg-green-600 transition-all"></span>
-                    Propriedades
+                    {t('footer.properties_title', 'Propriedades')}
                  </li>
                  <li className="hover:text-white cursor-pointer transition-colors flex items-center gap-2 group">
                     <span className="w-0 group-hover:w-2 h-px bg-green-600 transition-all"></span>
-                    Serviços
+                    {t('footer.services_title', 'Serviços')}
                  </li>
                  <li className="hover:text-white cursor-pointer transition-colors flex items-center gap-2 group">
                     <span className="w-0 group-hover:w-2 h-px bg-amber-600 transition-all"></span>
-                    Sobre
+                    {t('footer.about_title', 'Sobre')}
                  </li>
                  <li className="hover:text-white cursor-pointer transition-colors flex items-center gap-2 group">
                     <span className="w-0 group-hover:w-2 h-px bg-amber-600 transition-all"></span>
-                    Contato
+                    {t('footer.contact_title', 'Contato')}
                  </li>
               </ul>
            </div>
 
            {/* Contact Info */}
            <div>
-              <h4 className="text-sm font-black uppercase tracking-[0.2em] mb-8 text-white">Contato</h4>
+              <h4 className="text-sm font-black uppercase tracking-[0.2em] mb-8 text-white">{t('footer.contact_title', 'Contato')}</h4>
               <ul className="space-y-4 text-sm text-white/70">
                  <li>
-                    <div className="font-bold text-white/40 uppercase tracking-wider text-xs mb-1">WhatsApp</div>
-                    <div className="text-white font-bold">(44) 99722-3030</div>
+                    <div className="font-bold text-white/40 uppercase tracking-wider text-xs mb-1">{t('header.contact_whatsapp_label', 'WhatsApp')}</div>
+                    <div className="text-white font-bold">{settings.contactPhone || '(44) 99722-3030'}</div>
                  </li>
                  <li>
-                    <div className="font-bold text-white/40 uppercase tracking-wider text-xs mb-1">Email</div>
-                    <div className="text-white font-bold">contato@okaimoveis.com.br</div>
+                    <div className="font-bold text-white/40 uppercase tracking-wider text-xs mb-1">{t('header.contact_email_label', 'Email')}</div>
+                    <div className="text-white font-bold">{settings.contactEmail || 'contato@okaimoveis.com.br'}</div>
                  </li>
                  <li className="pt-2">
-                    <div className="font-bold text-white/40 uppercase tracking-wider text-xs">CRECI 4222J PJ</div>
+                    <div className="font-bold text-white/40 uppercase tracking-wider text-xs">{t('footer.creci', 'CRECI 4222J PJ')}</div>
                  </li>
               </ul>
            </div>
@@ -941,7 +945,7 @@ const LandingPage: React.FC = () => {
            <p>© 2024 CONVERSAR - Propriedades Rurais.</p>
            <div className="flex gap-8">
               <Link to="/admin" className="hover:text-white/40 transition-colors">Admin Access</Link>
-              <span>CRECI 4222J PJ</span>
+              <span>{t('footer.creci', 'CRECI 4222J PJ')}</span>
            </div>
         </div>
       </footer>
