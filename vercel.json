@@ -7,15 +7,29 @@
       "config": {
         "distDir": "dist"
       }
+    },
+    {
+      "src": "server/api/**/*.js",
+      "use": "@vercel/node"
     }
   ],
-  "routes": [
+  "redirects": [
     {
-      "src": "/api/(.*)",
-      "dest": "/server/$1"
+      "source": "/",
+      "destination": "/admin",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.imobisaas.com"
+        }
+      ]
     }
   ],
   "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/server/api/$1"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
@@ -35,14 +49,9 @@
         },
         {
           "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization"
+          "value": "Content-Type, Authorization, x-tenant-id, x-tenant-name, x-tenant-subdomain, x-tenant-type"
         }
       ]
     }
-  ],
-  "env": {
-    "VITE_SUPABASE_URL": "@supabase_url",
-    "VITE_SUPABASE_ANON_KEY": "@supabase_anon_key",
-    "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key"
-  }
+  ]
 }

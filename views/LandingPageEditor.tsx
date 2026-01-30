@@ -16,13 +16,15 @@ import {
   Tablet,
   Monitor,
   ArrowLeft,
-  Loader
+  Loader,
+  Wand2,
 } from 'lucide-react';
 import BlocksSidebar from '../components/LandingPageEditor/BlocksSidebar';
 import CanvasArea from '../components/LandingPageEditor/CanvasArea';
 import PropertiesSidebar from '../components/LandingPageEditor/PropertiesSidebar';
 import ThemeCustomizer from '../components/LandingPageEditor/ThemeCustomizer';
 import SEOSettings from '../components/LandingPageEditor/SEOSettings';
+import AICloneModal from '../components/LandingPageEditor/AICloneModal';
 
 type ViewMode = 'desktop' | 'tablet' | 'mobile';
 
@@ -39,6 +41,7 @@ const LandingPageEditor: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('desktop');
   const [showThemeCustomizer, setShowThemeCustomizer] = useState(false);
   const [showSEOSettings, setShowSEOSettings] = useState(false);
+  const [showAICloneModal, setShowAICloneModal] = useState(false);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
@@ -238,6 +241,31 @@ const LandingPageEditor: React.FC = () => {
     window.open(`/lp/${page.slug}?preview=true`, '_blank');
   };
 
+  const handleAICloneApply = (layoutConfig: any) => {
+    if (!page || !layoutConfig.blocks) return;
+    
+    // Replace blocks with AI generated ones
+    // We Map them to ensure they have valid IDs and defaults
+    const newBlocks = layoutConfig.blocks.map((b: any, index: number) => ({
+      ...b,
+      id: `block_${Date.now()}_${index}`,
+      order: index,
+      visible: true,
+      // Ensure config/styles exist if AI missed them
+      config: b.config || {}, 
+      styles: b.styles || {},
+      responsive: b.responsive || {} 
+    }));
+
+    setPage({
+      ...page,
+      blocks: newBlocks
+    });
+
+    setShowAICloneModal(false);
+    alert('Site clonado com sucesso! Verifique os novos blocos.');
+  };
+
   const getViewModeWidth = () => {
     switch (viewMode) {
       case 'mobile':
@@ -338,6 +366,16 @@ const LandingPageEditor: React.FC = () => {
               <Smartphone size={18} />
             </button>
           </div>
+
+          {/* AI Clone Button */}
+          <button
+             onClick={() => setShowAICloneModal(true)}
+             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:shadow-lg transition-all"
+             title="Clonar Site com IA"
+           >
+             <Wand2 size={18} />
+             <span className="hidden md:inline font-medium">Magic Clone</span>
+           </button>
 
           {/* Actions */}
           <button
@@ -481,6 +519,14 @@ const LandingPageEditor: React.FC = () => {
           page={page}
           onUpdate={setPage}
           onClose={() => setShowSEOSettings(false)}
+        />
+      )}
+
+      {/* AI Clone Modal */}
+      {showAICloneModal && (
+        <AICloneModal
+          onClone={handleAICloneApply}
+          onClose={() => setShowAICloneModal(false)}
         />
       )}
     </div>

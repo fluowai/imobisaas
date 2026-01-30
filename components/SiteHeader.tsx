@@ -7,7 +7,32 @@ import { useNavigate } from 'react-router-dom';
 const SiteHeader: React.FC = () => {
   const { settings } = useSettings();
   const { t } = useTexts();
+
   const navigate = useNavigate();
+  // We need to know if we are on a Tenant Site to determine Login URL
+  // SiteHeader is inside PublicLandingPage which might have a different Router context or just be standard
+  // If we are at /:slug, we want login to be /:slug/site/login
+  // The easiest way is to check the URL
+  const currentPath = window.location.pathname;
+  const isTenantSite = currentPath !== '/' && !currentPath.startsWith('/admin') && !currentPath.startsWith('/login');
+
+  const handleLoginClick = () => {
+      if (isTenantSite) {
+          // If we are at /slug, append /site/login
+          // Assuming /slug is the only segment for now or handled by router
+          // A safer way if we are using PublicLandingPage wrapper is that the root is /slug
+          // But SiteHeader doesn't know. 
+          // Let's assume currentPath is /imobiliaria-fazendas-brasil or similar
+          // If we just add /site/login to current, it might be /slug/site/login
+           
+          // Remove trailing slash
+          const cleanPath = currentPath.endsWith('/') ? currentPath.slice(0, -1) : currentPath;
+          navigate(`${cleanPath}/site/login`);
+      } else {
+          navigate('/login');
+      }
+  };
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Helper to strip non-digits for phone links
@@ -53,7 +78,7 @@ const SiteHeader: React.FC = () => {
                 </select>
             </div>
             <button 
-                onClick={() => navigate('/login')}
+                onClick={handleLoginClick}
                 className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded flex items-center gap-2 transition-colors"
             >
                 <User size={12} />

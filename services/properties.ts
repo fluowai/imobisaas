@@ -3,11 +3,17 @@ import { Property, PropertyType, PropertyStatus, PropertyPurpose, PropertyAptitu
 
 export const propertyService = {
   // Listar Imóveis
-  async list() {
-    const { data, error } = await supabase
+  async list(organizationId?: string) {
+    let query = supabase
       .from('properties')
       .select('*')
       .order('created_at', { ascending: false });
+
+    if (organizationId) {
+       query = query.eq('organization_id', organizationId);
+    }
+  
+    const { data, error } = await query;
 
     if (error) throw error;
     return data.map(mapToModel);

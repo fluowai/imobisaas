@@ -6,8 +6,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
   }
 }
 
-function extractDomainInfo(host: string) {
+function extractDomainInfo(host) {
   const BASE_DOMAIN = 'imobisaas.com';
   let subdomain = null;
   let domain = host;
@@ -84,7 +84,7 @@ function extractDomainInfo(host: string) {
   return { subdomain, domain };
 }
 
-async function resolveTenant(subdomain: string | null, domain: string) {
+async function resolveTenant(subdomain, domain) {
   let organization;
   
   // Buscar por domínio customizado primeiro

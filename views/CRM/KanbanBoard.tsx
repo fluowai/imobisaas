@@ -6,6 +6,7 @@ import { Lead } from '../../types';
 import { MessageCircle, Phone, Clock, FileCheck, CheckCircle2, XCircle, Search, Calendar, User, Home, Send } from 'lucide-react';
 import { useSettings } from '../../context/SettingsContext';
 import { supabase } from '../../services/supabase';
+import { useAuth } from '../../context/AuthContext';
 
 const PIPELINE_STAGES = [
   { id: 'Novo', label: 'Novos', icon: MessageCircle, color: 'bg-blue-100 text-blue-700' },
@@ -22,13 +23,21 @@ const KanbanBoard: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
+    const { profile } = useAuth();
+    const isImpersonating = !!localStorage.getItem('impersonatedOrgId');
+    const isSuperAdmin = profile?.role === 'superadmin';
+
+    const targetOrgId = (isSuperAdmin && !isImpersonating) ? undefined : profile?.organization_id;
+
     useEffect(() => {
-        loadLeads();
-    }, []);
+        if (targetOrgId || (isSuperAdmin && !isImpersonating)) {
+            loadLeads();
+        }
+    }, [targetOrgId, isSuperAdmin, isImpersonating]);
 
     const loadLeads = async () => {
         try {
-            const data = await leadService.list();
+            const data = await leadService.list(targetOrgId);
             setLeads(data);
         } catch (error) {
             console.error('Failed to load leads', error);

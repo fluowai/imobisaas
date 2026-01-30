@@ -74,8 +74,8 @@ export const leadService = {
   },
 
   // List leads for Kanban
-  async list() {
-    const { data, error } = await supabase
+  async list(organizationId?: string) {
+    let query = supabase
       .from('crm_leads')
       .select(`
         *,
@@ -87,9 +87,16 @@ export const leadService = {
       `)
       .order('created_at', { ascending: false });
 
+    if (organizationId) {
+      query = query.eq('organization_id', organizationId);
+    } // Note: crm_leads must have organization_id column. If not, this will fail. Assuming schema matches.
+
+    const { data, error } = await query;
     if (error) throw error;
     return data.map(mapToModel);
   },
+
+
 
   // Update lead status (drag and drop)
   async updateStatus(id: string, status: string) {

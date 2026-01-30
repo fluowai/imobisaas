@@ -1,6 +1,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
+// Impersonation Components
+import ImpersonateCallback from './views/ImpersonateCallback';
+import ImpersonationBanner from './components/ImpersonationBanner';
+
 // Layouts & Components
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -23,17 +27,28 @@ import SystemSettings from './views/SystemSettings';
 import PublicLandingPage from './views/PublicLandingPage';
 // import SetupWizard from './views/SetupWizard';
 
+// Super Admin
+import SuperAdminLayout from './views/superadmin/SuperAdminLayout';
+import SuperAdminDashboard from './views/superadmin/Dashboard';
+import TenantManager from './views/superadmin/TenantManager';
+import GlobalSettings from './views/superadmin/GlobalSettings';
+import DomainManager from './views/superadmin/DomainManager';
+import PlanManager from './views/superadmin/PlanManager';
+
 // CRM
 import KanbanBoard from './views/CRM/KanbanBoard';
+import Messages from './views/admin/Messages';
+import WhatsAppSetup from './views/admin/WhatsAppSetup';
 
 // Placeholder for missing/WIP views
 import BIRural from './views/BIRural';
 import LegalContracts from './views/LegalContracts';
 
-// Contexts
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { AuthProvider } from './context/AuthContext';
 import { TextsProvider } from './context/TextsContext';
+import { PlansProvider } from './context/PlansContext';
+import DomainRouter from './components/DomainRouter';
 
 console.log('App.tsx: Module Executing (CRM Enabled)');
 
@@ -44,6 +59,7 @@ const Placeholder: React.FC<{ name: string }> = ({ name }) => (
     <p>Funcionalidade em desenvolvimento.</p>
   </div>
 );
+
 
 const AppContent: React.FC = () => {
   const { settings, loading } = useSettings();
@@ -57,9 +73,12 @@ const AppContent: React.FC = () => {
   }
 
   return (
+    <>
+    <ImpersonationBanner />
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
+      <Route path="/impersonate" element={<ImpersonateCallback />} />
       <Route path="/lp/:slug" element={<PublicLandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -84,6 +103,10 @@ const AppContent: React.FC = () => {
       {/* CRM */}
       <Route path="/admin/crm" element={<ProtectedRoute><Layout><KanbanBoard /></Layout></ProtectedRoute>} />
 
+      {/* Messages & Setup */}
+      <Route path="/admin/messages" element={<ProtectedRoute><Layout><Messages /></Layout></ProtectedRoute>} />
+      <Route path="/admin/whatsapp-setup" element={<ProtectedRoute><Layout><WhatsAppSetup /></Layout></ProtectedRoute>} />
+
       {/* Tools */}
       <Route path="/admin/ai-assistant" element={<ProtectedRoute><Layout><AIAssistant /></Layout></ProtectedRoute>} />
       <Route path="/admin/migration" element={<ProtectedRoute><Layout><Migration /></Layout></ProtectedRoute>} />
@@ -100,23 +123,37 @@ const AppContent: React.FC = () => {
       {/* Setup */}
       {/* <Route path="/admin/setup" element={<ProtectedRoute><Layout><SetupWizard /></Layout></ProtectedRoute>} /> */}
 
+      {/* Super Admin Routes */}
+      <Route path="/superadmin" element={<ProtectedRoute><SuperAdminLayout /></ProtectedRoute>}>
+          <Route index element={<SuperAdminDashboard />} />
+          <Route path="tenants" element={<TenantManager />} />
+          <Route path="domains" element={<DomainManager />} />
+          <Route path="plans" element={<PlanManager />} />
+          <Route path="settings" element={<GlobalSettings />} />
+      </Route>
+
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 };
 
 const App: React.FC = () => {
   return (
     <Router>
-      <SettingsProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <SettingsProvider>
           <TextsProvider>
-            <TrackingPixels />
-            <AppContent />
+            <PlansProvider>
+              <DomainRouter>
+                <TrackingPixels />
+                <AppContent />
+              </DomainRouter>
+            </PlansProvider>
           </TextsProvider>
-        </AuthProvider>
-      </SettingsProvider>
+        </SettingsProvider>
+      </AuthProvider>
     </Router>
   );
 };

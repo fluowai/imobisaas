@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { propertyService } from '../services/properties';
 import { Property } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 const PropertyManagement: React.FC = () => {
   const [viewType, setViewType] = useState<'grid' | 'list'>('grid');
@@ -25,14 +26,25 @@ const PropertyManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  const { profile } = useAuth(); 
+  const isImpersonating = !!localStorage.getItem('impersonatedOrgId');
+  const isSuperAdmin = profile?.role === 'superadmin';
+
+  // Se for SuperAdmin e NÃO estiver impersonando, mostra tudo (undefined).
+  // Se for User comum ou SuperAdmin Impersonando, foca na organização do profile.
+  const targetOrgId = (isSuperAdmin && !isImpersonating) ? undefined : profile?.organization_id;
+
   useEffect(() => {
-    loadProperties();
-  }, []);
+    // Carrega se tiver orgId definido OU se for SuperAdmin (que pode ver tudo sem orgId)
+    if (targetOrgId || (isSuperAdmin && !isImpersonating)) {
+        loadProperties();
+    }
+  }, [targetOrgId, isSuperAdmin, isImpersonating]);
 
   const loadProperties = async () => {
     try {
       setLoading(true);
-      const data = await propertyService.list();
+      const data = await propertyService.list(targetOrgId);
       setProperties(data);
     } catch (error) {
       console.error('Erro ao carregar imóveis:', error);

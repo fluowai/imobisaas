@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { landingPageService } from '../services/landingPages';
 import { LandingPage, BlockType } from '../types/landingPage';
+import { supabase } from '../services/supabase';
+import MainLandingPage from './LandingPage'; 
+import Login from './Login'; // Import Login Component
+import { SettingsProvider } from '../context/SettingsContext';
 import { Loader } from 'lucide-react';
 
 // Import public block components
@@ -13,6 +17,7 @@ import TextBlock from '../components/LandingPageBlocks/TextBlock';
 import FormBlock from '../components/LandingPageBlocks/FormBlock';
 import CTABlock from '../components/LandingPageBlocks/CTABlock';
 import SpacerBlock from '../components/LandingPageBlocks/SpacerBlock';
+import { v4 as uuidv4 } from 'uuid'; // Need uuid for virtual blocks
 import GalleryBlock from '../components/LandingPageBlocks/GalleryBlock';
 import StatsBlock from '../components/LandingPageBlocks/StatsBlock';
 import ImageBlock from '../components/LandingPageBlocks/ImageBlock';
@@ -25,42 +30,151 @@ import BrokerCardBlock from '../components/LandingPageBlocks/BrokerCardBlock';
 import DividerBlock from '../components/LandingPageBlocks/DividerBlock';
 import { useSettings } from '../context/SettingsContext'; // For public page might fallback/fail gracefully if context missing
 
-const PublicLandingPage: React.FC = () => {
-  const { slug } = useParams<{ slug: string }>();
-  const [searchParams] = useSearchParams();
-  const [page, setPage] = useState<LandingPage | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface PublicLandingPageProps {
+    forceSlug?: string;
+}
 
-  const isPreview = searchParams.get('preview') === 'true';
+const PublicLandingPage: React.FC<PublicLandingPageProps> = ({ forceSlug }) => {
+  const { slug: routeSlug } = useParams<{ slug: string }>();
+  // Prefer the prop from DomainRouter, fallback to URL parameter
+  const activeSlug = forceSlug || routeSlug; 
+
+  const [landingPage, setLandingPage] = useState<LandingPage | null>(null);
+  const [error, setError] = useState<string | null>(null); // Added error state
+  const [settings, setSettings] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [organization, setOrganization] = useState<any>(null);
+  const [showMainSite, setShowMainSite] = useState(false); // Flag to show main component
+  const [showLogin, setShowLogin] = useState(false); // Flag to show branding login
+
+  // Alias for compatibility with existing render logic
+  const page = landingPage; 
+  const isPreview = false; // Default for public view
+
+  const [searchParams] = useSearchParams(); // Call hook at top level
 
   useEffect(() => {
-    loadPage();
-  }, [slug]);
-
-  const loadPage = async () => {
-    if (!slug) {
-      setError('Slug não fornecido');
-      setLoading(false);
-      return;
+    if (activeSlug) {
+      loadLandingPage(activeSlug);
     }
+  }, [activeSlug, searchParams.get('page')]); // Use values from top-level hook
 
+  const loadLandingPage = async (slug: string) => {
     try {
       setLoading(true);
-      const data = await landingPageService.getBySlug(slug);
-      setPage(data);
+      console.log('🔍 Loading Public Site for Slug:', slug);
+
+      // 1. Find Organization by Slug using Public RPC
+      const { data: org, error: orgError } = await supabase
+        .rpc('get_tenant_public', { slug_input: slug })
+        .single();
       
-      // Track view (não registrar em preview mode)
-      if (!isPreview && data.id) {
-        await landingPageService.trackView(data.id, {
-          userAgent: navigator.userAgent,
-          referrer: document.referrer
-        });
+      if (orgError) console.warn("Erro ao buscar org via RPC:", orgError);
+
+      if (!org) {
+        // Fallback for direct query if RPC fails or not deployed yet (during dev)
+         const { data: orgDirect, error: directError } = await supabase
+            .from('organizations')
+            .select('id, name, slug')
+            .eq('slug', slug)
+            .single();
+            
+         if (!orgDirect) {
+             console.error('Organization not found for slug:', slug);
+             setLoading(false);
+             return;
+         }
+         // Note: If RLS blocks this, it will fail.
+         setOrganization(orgDirect);
+      } else {
+         setOrganization(org);
       }
-    } catch (err) {
-      console.error('Error loading page:', err);
-      setError('Landing page não encontrada ou não publicada');
-    } finally {
+
+      const orgId = org?.id || (organization as any)?.id;
+
+      if(orgId) {
+        // 2. Load Public Site Settings
+        const { data: siteSettings } = await supabase
+            .rpc('get_site_settings_public', { org_id: orgId });
+        
+        if (siteSettings) {
+            setSettings(siteSettings);
+        } else {
+            // Try standard select if RPC returns null (maybe empty settings)
+            // But standard select might be blocked by RLS.
+            // console.warn('Using default settings');
+        }
+      }
+
+      // 3. Load Active Landing Page
+      if (orgId) {
+          const targetPageSlug = searchParams.get('page'); // Use top-level variable
+          
+          // Check for Login Route
+          const path = window.location.pathname;
+          if (path.endsWith('/site/login')) {
+              setShowLogin(true);
+              setLoading(false);
+              return; // Stop loading page logic
+          }
+
+          let pageData = null;
+
+          if (targetPageSlug) {
+             // Specific page requested
+             const { data } = await supabase
+                 .from('landing_pages')
+                 .select('*')
+                 .eq('organization_id', orgId)
+                 .eq('slug', targetPageSlug)
+                 .eq('status', 'published')
+                 .single();
+             pageData = data;
+          } else {
+             // Root access: Try to find a dedicated homepage
+             const { data } = await supabase
+                 .from('landing_pages')
+                 .select('*')
+                 .eq('organization_id', orgId)
+                 .eq('status', 'published')
+                 .in('slug', ['home', 'inicio', 'index', 'main', 'site'])
+                 .limit(1)
+                 .maybeSingle();
+             
+             pageData = data;
+          }
+
+          if (pageData) {
+              // Map DB snake_case to CamelCase
+              const mappedPage: any = {
+                  ...pageData,
+                  themeConfig: pageData.theme_config || pageData.themeConfig || {},
+                  metaTitle: pageData.meta_title,
+                  metaDescription: pageData.meta_description,
+                  ogImage: pageData.og_image,
+                  customCss: pageData.custom_css,
+                  customJs: pageData.custom_js,
+                  propertySelection: pageData.property_selection || pageData.propertySelection,
+                  formConfig: pageData.form_config || pageData.formConfig,
+                  createdAt: pageData.created_at,
+                  updatedAt: pageData.updated_at,
+              };
+              setLandingPage(mappedPage);
+              setShowMainSite(false);
+          } else if (!targetPageSlug) {
+              // NO HOME PAGE FOUND -> SHOW MAIN SITE COMPONENT (Terra Produtiva Model)
+              console.log('Using Main LandingPage Component');
+              setShowMainSite(true);
+          }
+      }
+      
+      setLoading(false);
+
+      setLoading(false);
+
+    } catch (err: any) {
+      console.error('Error loading site:', err);
+      setError(err.message || 'Erro ao carregar o site');
       setLoading(false);
     }
   };
@@ -133,6 +247,24 @@ const PublicLandingPage: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  // RENDER LOGIN IF REQUESTED
+  if (showLogin && organization) {
+      return (
+          <SettingsProvider organizationId={organization.id}>
+              <Login />
+          </SettingsProvider>
+      );
+  }
+
+  // RENDER MAIN SITE MODEL IF REQUESTED
+  if (showMainSite && organization) {
+      return (
+          <SettingsProvider organizationId={organization.id}>
+              <MainLandingPage organizationId={organization.id} />
+          </SettingsProvider>
+      );
   }
 
   if (error || !page) {

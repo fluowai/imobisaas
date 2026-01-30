@@ -6,7 +6,7 @@ interface UserProfile {
   id: string;
   email: string;
   full_name: string;
-  role: 'admin' | 'broker';
+  role: 'admin' | 'broker' | 'superadmin';
   avatar_url?: string;
   created_at: string;
 }
@@ -19,6 +19,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
+  stopImpersonation: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,16 +56,46 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const loadProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      // 1. Get Base Profile
+      const { data: profileData, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
       if (error) throw error;
-      setProfile(data);
-    } catch (error) {
+      
+      console.log('🔍 [AuthContext] Raw Profile Data DB:', profileData);
+      console.log('🔍 [AuthContext] Role from DB:', profileData?.role);
+
+      // 2. Check for Impersonation (Super Admin Only)
+      const impersonatedOrgId = localStorage.getItem('impersonatedOrgId');
+      
+      if (profileData.role === 'superadmin' && impersonatedOrgId) {
+          console.log(`🕵️ Super Admin Impersonating Organization: ${impersonatedOrgId}`);
+          
+          // Verify if the org exists to be safe
+          const { data: orgData } = await supabase.from('organizations').select('id').eq('id', impersonatedOrgId).single();
+          
+          if (orgData) {
+              // Override organization_id in local state ONLY
+              profileData.organization_id = impersonatedOrgId;
+          } else {
+              // Invalid org, clear it
+              localStorage.removeItem('impersonatedOrgId');
+          }
+      }
+
+      setProfile(profileData);
+    } catch (error: any) {
       console.error('Error loading profile:', error);
+      
+      // Auto-logout if token is expired
+      if (error?.code === 'PGRST303' || error?.message?.includes('JWT expired')) {
+          console.warn('Session expired, signing out...');
+          await signOut();
+          alert('Sua sessão expirou. Por favor, faça login novamente.');
+      }
     } finally {
       setLoading(false);
     }
@@ -118,8 +149,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await loadProfile(user.id);
   };
 
+  const stopImpersonation = () => {
+      localStorage.removeItem('impersonatedOrgId');
+      window.location.href = '/superadmin'; // Reload to clear state
+  };
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, updateProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, updateProfile, stopImpersonation }}>
       {children}
     </AuthContext.Provider>
   );

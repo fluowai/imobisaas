@@ -26,7 +26,11 @@ const DotGrid: React.FC<{ className?: string }> = ({ className }) => (
   <div className={`absolute pointer-events-none opacity-[0.15] ${className}`} style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
 );
 
-const LandingPage: React.FC = () => {
+interface LandingPageProps {
+  organizationId?: string;
+}
+
+const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
   // Rural Property Search Filters
   const [propertyType, setPropertyType] = useState<string>('');
   const [city, setCity] = useState('');
@@ -160,8 +164,8 @@ const LandingPage: React.FC = () => {
     const loadProperties = async () => {
       try {
         setLoading(true);
-        // Fetch all properties (no slicing)
-        const data = await propertyService.list();
+        // Fetch all properties (no slicing), filtered by org if present
+        const data = await propertyService.list(organizationId);
         setProperties(data);
       } catch (error) {
         console.error("Erro ao carregar imóveis da home", error);
@@ -170,7 +174,7 @@ const LandingPage: React.FC = () => {
       }
     };
     loadProperties();
-  }, []);
+  }, [organizationId]);
 
   // Apply filters
   React.useEffect(() => {

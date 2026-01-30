@@ -379,7 +379,10 @@ export interface SiteSettings {
     };
     groq?: {
       apiKey: string;
-      model?: string; // Optional model selection
+      model?: string;
+    };
+    gemini?: {
+      apiKey: string;
     };
   };
   // Visual Layout Editor

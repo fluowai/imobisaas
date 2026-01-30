@@ -7,10 +7,23 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { sendContactFormEmail } from './services/emailService.js';
 
+import { sendContactFormEmail } from './services/emailService.js';
+import currentTenantHandler from './api/tenant/current.js';
+import resolveTenantHandler from './api/tenant/resolve.js';
+// Import other handlers if needed, assuming they follow default export pattern
+// import propertiesHandler from './api/public/properties.js'; 
+// import landingPageHandler from './api/public/landing-page.js';
+
+import { cloneSite } from './services/siteCloner.js';
+
+// Evolution API Handlers
+import evolutionWebhookHandler from './api/evolution/webhook.js';
+import { getChats, getMessages, sendMessage } from './api/evolution/chat.js';
+import { getInstances, createInstance, deleteInstance } from './api/evolution/instances.js';
 
 // Configuração de ambiente para ES Modules
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 dotenv.config({ path: join(__dirname, '../.env') }); // Sobe um nível para achar .env na raiz
@@ -248,6 +261,12 @@ app.post('/api/contact', async (req, res) => {
     }
 });
 
+// --- TENANT ENDPOINTS (Local Dev & Compatibility) ---
+// Resolve Tenant
+app.get('/api/tenant/resolve', (req, res) => resolveTenantHandler(req, res));
+
+// Current Tenant (uses same logic as Vercel Function)
+app.get('/api/tenant/current', (req, res) => currentTenantHandler(req, res));
 
 // ============================================
 // SITE TEXTS API - Sistema de Textos Editáveis
@@ -485,6 +504,22 @@ app.post('/api/migrate', async (req, res) => {
   }
 });
 
+// AI CLONE SITE
+app.post('/api/ai/clone-site', async (req, res) => {
+    const { url, organizationId } = req.body;
+    
+    if (!url) {
+        return res.status(400).json({ error: 'URL is required' });
+    }
+    
+    try {
+        const layoutConfig = await cloneSite(url, organizationId);
+        res.json({ success: true, layout: layoutConfig });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 const BASE_URL = 'https://www.fazendasbrasil.com.br';
 
 async function runScraper(targetUrl) {
@@ -655,6 +690,23 @@ async function processProperty(url) {
 app.get('/', (req, res) => {
   res.send('Servidor de Migração Online 🚀');
 });
+
+// --- SECURE IMPERSONATION ROUTES ---
+import { startImpersonation, exchangeImpersonationToken } from './api/support/impersonate.js';
+
+app.post('/api/support/impersonate', startImpersonation);
+app.post('/api/support/exchange', exchangeImpersonationToken);
+
+// --- EVOLUTION API ROUTES ---
+app.post('/api/evolution/webhook', evolutionWebhookHandler);
+app.get('/api/evolution/chats', getChats);
+app.get('/api/evolution/messages/:remoteJid', getMessages);
+app.post('/api/evolution/messages/send', sendMessage);
+
+// Evolution Instances
+app.get('/api/evolution/instances', getInstances);
+app.post('/api/evolution/instances', createInstance);
+app.delete('/api/evolution/instances/:id', deleteInstance);
 
 const PORT = 3002;
 app.listen(PORT, () => {

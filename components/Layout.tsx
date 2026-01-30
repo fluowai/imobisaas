@@ -18,11 +18,14 @@ import {
   Settings,
   Menu,
   X,
-  Type
+  Type,
+  Phone,
+  ShieldAlert
 } from 'lucide-react';
 import { MOCK_USER } from '../constants';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
+import { usePlans } from '../context/PlansContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -30,7 +33,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { settings } = useSettings();
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, stopImpersonation, loading } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -50,11 +53,35 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { icon: Settings, label: 'Configurações', path: '/admin/settings' },
     { icon: Calendar, label: 'Agenda', path: '/admin/agenda' },
     { icon: FileText, label: 'Contratos', path: '/admin/contracts' },
+    { icon: Phone, label: 'Mensagens', path: '/admin/messages' },
+    { icon: Settings, label: 'Conexões WhatsApp', path: '/admin/whatsapp-setup' },
     { icon: PieChart, label: 'BI & Rural', path: '/admin/reports' },
     { icon: Type, label: 'Editor de Textos', path: '/admin/texts' },
     { icon: Sparkles, label: 'IA Studio', path: '/admin/ai-assistant' },
     { icon: Database, label: 'Migração', path: '/admin/migration' },
   ];
+  
+  // Define feature requirements
+  const featureRequirements: Record<string, string> = {
+      '/admin/crm': 'crm',
+      '/admin/landing-pages': 'site',
+      '/admin/ai-assistant': 'ia_chat',
+      '/admin/whatsapp-setup': 'whatsapp',
+      '/admin/messages': 'whatsapp'
+  };
+
+  if (profile?.role === 'superadmin') {
+    menuItems.push({ icon: ShieldAlert, label: 'Super Admin', path: '/superadmin' });
+  }
+
+  const { hasFeature } = usePlans();
+
+  // Filter items
+  const filteredMenuItems = menuItems.filter(item => {
+      const required = featureRequirements[item.path];
+      if (!required) return true; // No requirement
+      return hasFeature(required as any);
+  });
 
   // Conteúdo da Sidebar (compartilhado entre desktop e mobile)
   const SidebarContent = () => (
@@ -83,7 +110,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </div>
       
       <nav className="flex-1 p-4 md:p-5 space-y-1 md:space-y-1.5 overflow-y-auto">
-        {menuItems.map((item) => (
+        {filteredMenuItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
@@ -115,10 +142,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {profile?.full_name?.charAt(0) || 'U'}
           </div>
           <div className="flex-1">
-            <p className="text-xs font-black text-white">{profile?.full_name || 'Usuário'}</p>
-            <p className="text-[10px] text-white/40 uppercase tracking-widest">{profile?.role === 'admin' ? 'Admin' : 'Corretor'}</p>
+            <p className="text-xs font-black text-white">{profile?.full_name || 'Carregando...'}</p>
+            
+            {/* ROLE BADGE */}
+            {profile?.role === 'superadmin' ? (
+                <span className="inline-block mt-1 px-2 py-0.5 bg-green-500 text-white text-[9px] font-black uppercase tracking-widest rounded-sm">
+                    SUPER ADMIN
+                </span>
+            ) : (
+                <p className="text-[10px] text-white/40 uppercase tracking-widest">
+                    {profile?.role === 'admin' ? 'Admin' : (loading ? '...' : 'Corretor')}
+                </p>
+            )}
           </div>
         </div>
+        
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-3 text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-all group"
@@ -152,6 +190,22 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <SidebarContent />
           </aside>
         </div>
+      )}
+
+      {/* Impersonation Banner */}
+      {localStorage.getItem('impersonatedOrgId') && (
+          <div className="bg-red-600 text-white text-center py-2 px-4 shadow-lg z-50 flex items-center justify-center gap-4">
+              <span className="font-bold flex items-center gap-2">
+                  <ShieldAlert size={18} />
+                  ACESSANDO COMO: IMOBILIÁRIA (Modo Super Admin)
+              </span>
+              <button 
+                  onClick={stopImpersonation} 
+                  className="bg-white text-red-600 px-3 py-1 rounded text-xs font-bold uppercase hover:bg-red-50"
+              >
+                  Sair do Acesso
+              </button>
+          </div>
       )}
 
       {/* Desktop Sidebar */}

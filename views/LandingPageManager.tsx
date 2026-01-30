@@ -23,28 +23,37 @@ import {
   Sparkles,
   Loader
 } from 'lucide-react';
+import AICloneModal from '../components/LandingPageEditor/AICloneModal';
+import CloneSiteWrapper from '../components/LandingPageEditor/CloneSiteWrapper';
 
 const LandingPageManager: React.FC = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [pages, setPages] = useState<LandingPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | LandingPageStatus>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
+  const [showCloneModal, setShowCloneModal] = useState(false);
+  
+  const isImpersonating = !!localStorage.getItem('impersonatedOrgId');
+  const isSuperAdmin = profile?.role === 'superadmin';
+
+  const targetOrgId = (isSuperAdmin && !isImpersonating) ? undefined : profile?.organization_id;
 
   useEffect(() => {
-    loadPages();
-  }, []);
+    if (targetOrgId || (isSuperAdmin && !isImpersonating)) {
+      loadPages();
+    }
+  }, [targetOrgId, isSuperAdmin, isImpersonating]);
 
   const loadPages = async () => {
     try {
       setLoading(true);
       console.log('🔄 [LandingPageManager] Carregando páginas...');
-      console.log('👤 User org ID:', user?.organizationId);
-      console.log('👤 User ID:', user?.id);
+      console.log('👤 Target Org ID:', targetOrgId || 'ALL (SuperAdmin)');
       
-      const data = await landingPageService.list(user?.organizationId, user?.id);
+      const data = await landingPageService.list(targetOrgId, user?.id);
       console.log(`📝 [LandingPageManager] Recebidas ${data.length} páginas`);
       setPages(data);
     } catch (error) {
@@ -145,6 +154,13 @@ const LandingPageManager: React.FC = () => {
               <Sparkles size={20} className="group-hover:animate-pulse" />
               Criar com IA
             </button>
+            <button
+               onClick={() => setShowCloneModal(true)}
+               className="flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors shadow-lg hover:shadow-xl group"
+             >
+               <Copy size={20} />
+               Clonar Site
+             </button>
             <button
               onClick={() => setShowCreateModal(true)}
               className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors shadow-sm hover:shadow-md"
@@ -374,7 +390,6 @@ const LandingPageManager: React.FC = () => {
         />
       )}
 
-      {/* AI Modal */}
       {showAIModal && (
         <CreateAILandingPageModal
           onClose={() => setShowAIModal(false)}
@@ -382,6 +397,13 @@ const LandingPageManager: React.FC = () => {
             setShowAIModal(false);
             loadPages();
           }}
+        />
+      )}
+
+      {/* Clone Modal */}
+      {showCloneModal && (
+        <CloneSiteWrapper 
+          onClose={() => setShowCloneModal(false)}
         />
       )}
     </div>

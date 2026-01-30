@@ -96,13 +96,15 @@ const addDomainToVercel = async (domain) => {
 
 ## Passo 4: Estrutura de Roteamento
 
-### 4.1 Middleware (Edge Runtime)
+### 4.1 Configuração Vercel (vercel.json)
 
-O arquivo `middleware.ts` já está configurado para:
+O arquivo `vercel.json` está configurado para:
 
-- Detectar domínio admin (`app.imobisaas.com`)
-- Resolver tenant por subdomínio (`cliente.imobisaas.com`)
-- Resolver tenant por domínio customizado (`www.cliente.com.br`)
+- Redirecionar `app.imobisaas.com` (Admin) para `/admin` automaticamente.
+- Roteamento de APIs: `/api/*` → Serverless Functions em `server/api/*`.
+- Configuração de builds para Frontend (Vite) e Backend (Node.js).
+
+O middleware (`middleware.ts`) **não é necessário** pois a resolução de tenant é feita diretamente pela API (`/api/tenant/resolve`) ou pelo endpoint de contexto (`/api/tenant/current`), que possui fallback robusto para identificar o domínio.
 
 ### 4.2 Rotas Públicas vs Admin
 
