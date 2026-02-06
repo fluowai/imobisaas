@@ -21,7 +21,28 @@ const WhatsAppSetup: React.FC = () => {
     const [creating, setCreating] = useState(false);
     const [newInstanceName, setNewInstanceName] = useState('');
     const [organizationId, setOrganizationId] = useState<string | null>(null);
+    const [serviceStatus, setServiceStatus] = useState<{status: string, instances?: number} | null>(null);
 
+    // Check Evolution Service Status
+    const checkServiceStatus = async () => {
+        try {
+            const { data } = await axios.get('/api/evolution/webhook');
+            if (data.status === 'online') {
+                setServiceStatus({ 
+                    status: data.evolution === 'connected' ? 'online' : 'partial',
+                    instances: data.instancesCount 
+                });
+            }
+        } catch (error) {
+            setServiceStatus({ status: 'offline' });
+        }
+    };
+
+    useEffect(() => {
+        checkServiceStatus();
+        const interval = setInterval(checkServiceStatus, 30000); // Poll every 30s
+        return () => clearInterval(interval);
+    }, []);
 
     // Fetch Organization ID and Slug
     useEffect(() => {
@@ -34,14 +55,12 @@ const WhatsAppSetup: React.FC = () => {
             // If we have an override (impersonation), AuthContext already put it in profile.organization_id
             // But if it's still null (Super Admin default view), try to find a fallback
             if (!orgId && profile.role === 'superadmin') {
-                 console.log("Super Admin sem contexto: Buscando organização padrão...");
                  const { data: firstOrg } = await supabase.from('organizations').select('id, slug').limit(1).single();
                  if (firstOrg) {
                      orgId = firstOrg.id;
                      slug = firstOrg.slug;
                  }
             } else if (orgId) {
-                 // Just get the slug for the current ID
                  const { data: orgData } = await supabase.from('organizations').select('slug').eq('id', orgId).single();
                  if (orgData) slug = orgData.slug;
             }
@@ -49,8 +68,8 @@ const WhatsAppSetup: React.FC = () => {
             if (orgId) {
                 setOrganizationId(orgId);
                 setBaseSlug(slug); 
+                setNewInstanceName(slug); // Default name
             } else {
-                console.warn('Organization ID not found for user');
                 setLoading(false);
             }
         };
@@ -61,13 +80,11 @@ const WhatsAppSetup: React.FC = () => {
     useEffect(() => {
         if (organizationId) {
             fetchInstances();
-        } else {
-             // Only stop loading if we are sure there is no org (handled in the other effect)
         }
     }, [organizationId]);
 
     const fetchInstances = async () => {
-        if (!organizationId) return; // Don't fetch if no org
+        if (!organizationId) return;
         try {
             setLoading(true);
             const { data } = await axios.get('/api/evolution/instances?organizationId=' + organizationId);
@@ -87,26 +104,6 @@ const WhatsAppSetup: React.FC = () => {
     const [showQrModal, setShowQrModal] = useState(false);
     const [connectingInstance, setConnectingInstance] = useState<string | null>(null);
 
-    const generateNextName = () => {
-        if (!baseSlug) return `instancia_${Date.now()}`;
-        
-        // Sanitize slug just in case
-        const safeSlug = baseSlug.toLowerCase().replace(/[^a-z0-9]/g, '');
-        
-        // Check existing names
-        const existingNames = instances.map(i => i.name);
-        
-        // Try base slug first
-        if (!existingNames.includes(safeSlug)) return safeSlug;
-        
-        // Try with counters
-        let counter = 1;
-        while (existingNames.includes(`${safeSlug}${counter}`)) {
-            counter++;
-        }
-        return `${safeSlug}${counter}`;
-    };
-
     const handleConnect = async (instanceName: string) => {
         if (!organizationId) return;
         
@@ -123,7 +120,6 @@ const WhatsAppSetup: React.FC = () => {
                     alert('Instância já conectada!');
                     fetchInstances();
                 } else if (evoData.qrcode) {
-                    // Show QRCode
                     setQrCodeData({
                         base64: evoData.qrcode.base64,
                         pairingCode: evoData.qrcode.pairingCode,
@@ -131,7 +127,6 @@ const WhatsAppSetup: React.FC = () => {
                     });
                     setShowQrModal(true);
                 } else if (evoData.base64) {
-                     // Formato v2 direto
                      setQrCodeData({
                         base64: evoData.base64,
                         code: evoData.code,
@@ -152,36 +147,29 @@ const WhatsAppSetup: React.FC = () => {
 
     const handleCreate = async () => {
         if (!organizationId) return;
+        if (!newInstanceName.trim()) {
+            alert('Por favor, informe um nome para a instância.');
+            return;
+        }
 
         try {
             setCreating(true);
             
-            const autoName = generateNextName();
-            const confirmMsg = `Será criada uma nova instância: "${autoName}". Confirmar?`;
+            const nameToCreate = newInstanceName.trim().toLowerCase().replace(/[^a-z0-9]/g, '-');
             
-            if (!confirm(confirmMsg)) {
-                setCreating(false);
-                return;
-            }
-
             const response = await axios.post('/api/evolution/instances', {
-                instanceName: autoName,
+                instanceName: nameToCreate,
                 organizationId: organizationId
             });
 
             if (response.data.success) {
-                alert(`Instância "${autoName}" criada com sucesso! Tentando conectar...`);
+                alert(`Instância "${nameToCreate}" criada com sucesso!`);
                 await fetchInstances();
-                // Auto connect
-                handleConnect(autoName);
+                handleConnect(nameToCreate);
             }
         } catch (error: any) {
-            console.error('Erro ao criar (Detalhado):', error);
-            if (error.response) {
-                console.error('Dados da resposta:', error.response.data);
-                console.error('Status:', error.response.status);
-            }
-            alert(`Erro: ${JSON.stringify(error.response?.data || error.message)}`);
+            console.error('Erro ao criar:', error);
+            alert(`Erro: ${error.response?.data?.error || error.message}`);
         } finally {
             setCreating(false);
         }
@@ -213,30 +201,53 @@ const WhatsAppSetup: React.FC = () => {
 
     return (
         <div className="max-w-4xl mx-auto p-6">
-            <div className="mb-8">
-                <div className="flex items-center gap-3 mb-2">
-                    <SmartphoneNfc className="text-green-600" size={32} />
-                    <h1 className="text-3xl font-bold text-gray-900">Conexões WhatsApp</h1>
+            <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <div className="flex items-center gap-3 mb-2">
+                        <SmartphoneNfc className="text-indigo-600" size={32} />
+                        <h1 className="text-3xl font-bold text-gray-900">Conexões WhatsApp</h1>
+                    </div>
+                    <p className="text-gray-600">Gerencie suas conexões com a Evolution API. Configure seu WhatsApp para automações.</p>
                 </div>
-                <p className="text-gray-600">Gerencie suas conexões com a Evolution API. O Webhook é configurado automaticamente ao criar.</p>
+                
+                <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-gray-200 shadow-sm self-start md:self-auto">
+                    <div className={`w-2.5 h-2.5 rounded-full animate-pulse ${
+                        serviceStatus?.status === 'online' ? 'bg-green-500' : 
+                        serviceStatus?.status === 'partial' ? 'bg-yellow-500' : 'bg-red-500'
+                    }`} />
+                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        Servidor: {
+                            serviceStatus?.status === 'online' ? 'Conectado' : 
+                            serviceStatus?.status === 'partial' ? 'Falha na API' : 
+                            serviceStatus?.status === 'offline' ? 'Offline' : 'Verificando...'
+                        }
+                    </span>
+                </div>
             </div>
 
             {/* Create New */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h2 className="text-lg font-semibold text-gray-800">Nova Conexão</h2>
-                        <p className="text-sm text-gray-500 mt-1">O nome da instância será gerado automaticamente (ex: {baseSlug || 'imobiliaria'}).</p>
+                <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4">
+                    <div className="flex-1 w-full">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Nome da Instância</label>
+                        <input 
+                            type="text" 
+                            value={newInstanceName}
+                            onChange={(e) => setNewInstanceName(e.target.value)}
+                            placeholder="Ex: atendimento-comercial"
+                            className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                        />
                     </div>
                     <button 
                         onClick={handleCreate}
-                        disabled={creating || !organizationId}
-                        className="px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 h-[42px]"
+                        disabled={creating || !organizationId || !newInstanceName}
+                        className="w-full md:w-auto px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 h-[42px] min-w-[180px]"
                     >
                         {creating ? <RefreshCw className="animate-spin" size={20} /> : <Plus size={20} />}
-                        {creating ? 'Criando...' : 'Criar Nova Instância'}
+                        {creating ? 'Criando...' : 'Criar Instância'}
                     </button>
                 </div>
+                <p className="text-[10px] text-gray-400 mt-2 uppercase font-bold">Use letras, números e hífens apenas.</p>
             </div>
 
             {/* List */}

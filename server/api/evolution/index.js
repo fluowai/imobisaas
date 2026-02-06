@@ -8,9 +8,31 @@ export default async function handler(req, res) {
     const { path, instanceName, remoteJid, id } = req.query;
     const method = req.method;
 
-    // --- WEBHOOK HANDLER ---
+    // --- WEBHOOK & STATUS HANDLER ---
     if (path === 'webhook') {
-        if (method === 'GET') return res.status(200).json({ status: 'online' });
+        if (method === 'GET') {
+            // Check Evolution API status
+            try {
+                const baseUrl = process.env.EVOLUTION_API_URL || 'https://evolution.consultio.com.br';
+                const apiKey = process.env.EVOLUTION_API_KEY || '422A9D0A-FA6A-4DDC-8A8C-D3501863C9E4';
+                
+                const response = await axios.get(`${baseUrl}/instance/fetchInstances`, {
+                    headers: { 'apikey': apiKey }
+                });
+                
+                return res.status(200).json({ 
+                    status: 'online', 
+                    evolution: 'connected',
+                    instancesCount: response.data.length 
+                });
+            } catch (err) {
+                return res.status(200).json({ 
+                    status: 'online', 
+                    evolution: 'disconnected',
+                    error: err.message 
+                });
+            }
+        }
         const authHeader = req.headers['authorization'];
         if (!authHeader || authHeader !== `Bearer ${WEBHOOK_TOKEN}`) return res.status(403).json({ error: 'Forbidden' });
         res.status(200).send('OK');
@@ -79,21 +101,43 @@ export default async function handler(req, res) {
         if (method === 'POST') {
             try {
                 const { instanceName, organizationId } = req.body;
-                const { data: rpcConfig } = await supabase.rpc('get_evolution_config', { request_org_id: organizationId });
-                if (!rpcConfig?.baseUrl) return res.status(400).json({ error: 'Evolution API não configurada' });
-                const baseUrl = rpcConfig.baseUrl;
-                const globalApiKey = rpcConfig.token;
+                
+                // Prioritize Env Vars for Global API Key
+                const baseUrl = process.env.EVOLUTION_API_URL || 'https://evolution.consultio.com.br';
+                const globalApiKey = process.env.EVOLUTION_API_KEY || '422A9D0A-FA6A-4DDC-8A8C-D3501863C9E4';
+                
+                if (!baseUrl) return res.status(400).json({ error: 'Evolution API baseUrl não configurada no servidor' });
                 
                 try {
-                    await axios.post(`${baseUrl}/instance/create`, { instanceName, token: Math.random().toString(36).substring(7), qrcode: true, integration: "WHATSAPP-BAILEYS" }, { headers: { 'apikey': globalApiKey }});
-                } catch (e) {}
+                    // Create instance
+                    await axios.post(`${baseUrl}/instance/create`, { 
+                        instanceName, 
+                        token: Math.random().toString(36).substring(7), 
+                        qrcode: true, 
+                        integration: "WHATSAPP-BAILEYS" 
+                    }, { headers: { 'apikey': globalApiKey }});
+                } catch (e) {
+                    console.log('Instance creation note:', e.response?.data || e.message);
+                }
 
                 const webhookUrl = `${WEBHOOK_BASE}/${instanceName}`;
-                await axios.post(`${baseUrl}/webhook/set/${instanceName}`, { webhookUrl, webhookByEvents: true, events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "SEND_MESSAGE", "CONNECTION_UPDATE"], enabled: true, webhookHeaders: { "Authorization": `Bearer ${WEBHOOK_TOKEN}` }}, { headers: { 'apikey': globalApiKey }});
+                await axios.post(`${baseUrl}/webhook/set/${instanceName}`, { 
+                    webhookUrl, 
+                    webhookByEvents: true, 
+                    events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "SEND_MESSAGE", "CONNECTION_UPDATE"], 
+                    enabled: true, 
+                    webhookHeaders: { "Authorization": `Bearer ${WEBHOOK_TOKEN}` }
+                }, { headers: { 'apikey': globalApiKey }});
 
-                const { data: newInstance } = await supabase.from('instances').upsert({ organization_id: organizationId, name: instanceName, status: 'created', server_url: baseUrl }, { onConflict: 'name' }).select().single();
+                const { data: newInstance } = await supabase.from('instances')
+                    .upsert({ organization_id: organizationId, name: instanceName, status: 'created', server_url: baseUrl }, { onConflict: 'name' })
+                    .select().single();
+                
                 return res.json({ success: true, instance: newInstance });
-            } catch (error) { return res.status(500).json({ error: error.message }); }
+            } catch (error) { 
+                console.error('Error creating instance:', error.response?.data || error.message);
+                return res.status(500).json({ error: error.message }); 
+            }
         }
     }
 
