@@ -28,8 +28,8 @@ const SuperAdminLayout: React.FC = () => {
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/superadmin' },
-    { icon: Building2, label: 'Imobiliárias', path: '/superadmin/tenants' },
-    { icon: CreditCard, label: 'Planos', path: '/superadmin/plans' },
+    // { icon: Building2, label: 'Imobiliárias', path: '/superadmin/tenants' }, // REMOVED FOR SINGLE TENANT
+    // { icon: CreditCard, label: 'Planos', path: '/superadmin/plans' }, // REMOVED FOR SINGLE TENANT
     { icon: Globe, label: 'Domínios', path: '/superadmin/domains' },
     { icon: Settings, label: 'Configurações', path: '/superadmin/settings' },
   ];
@@ -112,12 +112,12 @@ const SuperAdminLayout: React.FC = () => {
             </div>
             
             <button
-              onClick={() => navigate('/admin')}
-              className="w-full flex items-center gap-2 px-2 py-2 mb-1 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors border-b border-transparent hover:border-slate-700"
-            >
-              <ArrowLeft size={18} />
-              Voltar ao Painel
-            </button>
+               onClick={() => navigate('/admin')}
+               className="w-full flex items-center gap-2 px-2 py-2 mb-1 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors border-b border-transparent hover:border-slate-700"
+             >
+               <LayoutDashboard size={18} />
+               Acessar Painel da Agência
+             </button>
             
             <button
               onClick={handleSignOut}

@@ -18,6 +18,7 @@ import AdminDashboard from './views/AdminDashboard';
 
 // Admin Views
 import PropertyManagement from './views/PropertyManagement';
+import PropertyEditor from './views/PropertyEditor';
 import LandingPageManager from './views/LandingPageManager';
 import LandingPageEditor from './views/LandingPageEditor';
 import TextsManager from './views/TextsManager';
@@ -89,8 +90,8 @@ const AppContent: React.FC = () => {
       
       {/* Properties */}
       <Route path="/admin/properties" element={<ProtectedRoute><Layout><PropertyManagement /></Layout></ProtectedRoute>} />
-      <Route path="/admin/properties/new" element={<ProtectedRoute><Layout><PropertyManagement isNew /></Layout></ProtectedRoute>} />
-      <Route path="/admin/properties/:id" element={<ProtectedRoute><Layout><PropertyManagement /></Layout></ProtectedRoute>} />
+      <Route path="/admin/properties/new" element={<ProtectedRoute><Layout><PropertyEditor /></Layout></ProtectedRoute>} />
+      <Route path="/admin/properties/:id" element={<ProtectedRoute><Layout><PropertyEditor /></Layout></ProtectedRoute>} />
       
       {/* Landing Pages */}
       <Route path="/admin/landing-pages" element={<ProtectedRoute><Layout><LandingPageManager /></Layout></ProtectedRoute>} />
@@ -123,14 +124,16 @@ const AppContent: React.FC = () => {
       {/* Setup */}
       {/* <Route path="/admin/setup" element={<ProtectedRoute><Layout><SetupWizard /></Layout></ProtectedRoute>} /> */}
 
-      {/* Super Admin Routes */}
+      {/* Super Admin Routes (Deprecated - Moved to Settings) */}
+      {/* 
       <Route path="/superadmin" element={<ProtectedRoute><SuperAdminLayout /></ProtectedRoute>}>
           <Route index element={<SuperAdminDashboard />} />
           <Route path="tenants" element={<TenantManager />} />
           <Route path="domains" element={<DomainManager />} />
           <Route path="plans" element={<PlanManager />} />
           <Route path="settings" element={<GlobalSettings />} />
-      </Route>
+      </Route> 
+      */}
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
