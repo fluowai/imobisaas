@@ -46,28 +46,8 @@ const DomainRouter: React.FC<DomainRouterProps> = ({ children }) => {
              const cleanPanelHost = panelHost.replace(/^www\./, '');
 
 
-             // 0. FORCE CENTRAL LOGIN / ADMIN ACCESS
-             // If user tries to access restricted system paths on a Custom Domain
-             // Redirect them to the Central Panel.
-             const restrictedPaths = ['/login', '/admin', '/register', '/dashboard', '/suporte'];
-             const isRestrictedPath = restrictedPaths.some(p => path === p || path.startsWith(p + '/'));
-
-             if (isRestrictedPath && !hostname.includes('localhost') && cleanHostname !== cleanPanelHost) {
-                  log(`🔒 [Router] Restricted access on external domain (${cleanHostname}${path}) -> Redirecting to Central Panel`);
-                  window.location.href = `${panelUrl}/login`;
-                  return;
-             }
 
 
-             // Root Redirect for Panel (Robust Check)
-             // If current host matches the panel host (ignoring www) AND path is '/'
-             // AND we are NOT in visual mode (which needs '/' to edit the landing page)
-             if (cleanHostname === cleanPanelHost && path === '/' && !isVisualMode) {
-                 log(`🔀 [Router] Root access on Panel Domain (${cleanHostname}) -> Redirecting to /login`);
-                 // Force full reload to ensure clean state
-                 window.location.href = '/login'; 
-                 return;
-             }
 
 
 
@@ -163,25 +143,6 @@ const DomainRouter: React.FC<DomainRouterProps> = ({ children }) => {
         
     }, [location.pathname, debugMode]); 
 
-    // Redirect Logic for Tenant Sites (Centralized Panel)
-    useEffect(() => {
-        if (!loading && isPublicSite) {
-            // Define paths that should redirect to Central Panel
-            const adminPaths = ['/login', '/register', '/admin', '/suporte', '/dashboard'];
-            const path = location.pathname;
-            
-            // Exact match or starts with
-            const shouldRedirect = adminPaths.some(r => path === r || path.startsWith(r + '/'));
-            
-            if (shouldRedirect) {
-                const panelUrl = import.meta.env.VITE_PANEL_URL;
-                if(panelUrl) {
-                    console.log(`🔀 Redirecting to Central Panel: ${panelUrl}/login`);
-                    window.location.href = `${panelUrl}/login`;
-                }
-            }
-        }
-    }, [loading, isPublicSite, location.pathname]); 
 
     if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>;
 
