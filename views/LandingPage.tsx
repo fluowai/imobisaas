@@ -11,6 +11,9 @@ import { leadService } from '../services/leads';
 import { uploadFile } from '../services/storage';
 import SiteHeader from '../components/SiteHeader';
 import ContactForm from '../components/ContactForm';
+import InlineEditable from '../components/InlineEditable';
+import ImageEditable from '../components/ImageEditable';
+import VisualEditorToolbar from '../components/VisualEditorToolbar';
 
 // Helper to determine text color based on background luminance
 const getContrastColor = (hexcolor: string | undefined) => {
@@ -109,7 +112,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
       }, 4000);
     } catch (error) {
       console.error('Erro ao submeter imóvel', error);
-      alert('Houve um erro ao enviar seu imóvel. Por favor, tente novamente.');
+      alert(t('submit_modal.error_alert', 'Houve um erro ao enviar seu imóvel. Por favor, tente novamente.'));
     } finally {
       setIsSubmittingProperty(false);
     }
@@ -120,7 +123,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
     if (files && files.length > 0) {
       setUploadingImage(true);
       try {
-        const uploadPromises = Array.from(files).map(file => uploadFile(file, 'property-images'));
+        const uploadPromises = Array.from(files).map(file => uploadFile(file as File, 'property-images'));
         const urls = await Promise.all(uploadPromises);
         const validUrls = urls.filter((url): url is string => url !== null);
         setPropertyForm(prev => ({ ...prev, images: [...(prev.images || []), ...validUrls] }));
@@ -143,14 +146,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
         source: `Site - ${leadForm.subject}`
       });
       setLeadSuccess(true);
-      setLeadForm({ name: '', phone: '', email: '', subject: 'Interesse Geral' });
+      setLeadForm({ name: '', phone: '', email: '', subject: t('lead_modal.default_subject', 'Interesse Geral') });
       setTimeout(() => {
         setIsLeadModalOpen(false);
         setLeadSuccess(false);
       }, 3000);
     } catch (error) {
       console.error('Erro ao enviar lead', error);
-      alert('Houve um erro ao enviar seus dados. Por favor, tente novamente.');
+      alert(t('lead_modal.error_alert', 'Houve um erro ao enviar seus dados. Por favor, tente novamente.'));
     } finally {
       setIsSubmittingLead(false);
     }
@@ -230,12 +233,17 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
       
       {/* Side Decorative Text */}
       <div className="fixed left-6 bottom-32 origin-bottom-left -rotate-90 pointer-events-none hidden xl:block">
-        <span className="text-[11px] font-black uppercase tracking-[1.2em] opacity-60 whitespace-nowrap" style={{ color: settings.secondaryColor }}>Exclusividade & Tradição</span>
+        <span className="text-[11px] font-black uppercase tracking-[1.2em] opacity-60 whitespace-nowrap" style={{ color: settings.secondaryColor }}>
+          {t('decorative.text1', 'Exclusividade & Tradição')}
+        </span>
       </div>
       <div className="fixed right-6 top-1/2 -translate-y-1/2 origin-top-right rotate-90 pointer-events-none hidden xl:block">
-        <span className="text-[11px] font-black uppercase tracking-[1.2em] opacity-60 whitespace-nowrap" style={{ color: settings.secondaryColor }}>Luxury Urban Living</span>
+        <span className="text-[11px] font-black uppercase tracking-[1.2em] opacity-60 whitespace-nowrap" style={{ color: settings.secondaryColor }}>
+          {t('decorative.text2', 'Luxury Urban Living')}
+        </span>
       </div>
       <SiteHeader />
+      <VisualEditorToolbar />
 
       {/* Hero Section - Rural Property Focus */}
       <section className="relative h-[700px] flex items-center justify-center overflow-hidden">
@@ -255,7 +263,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
             <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-8 shadow-2xl">
               <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
               <span className="text-[10px] font-black uppercase text-white/90 tracking-[0.3em] font-sans">
-                {t('hero.badge', 'Terras Produtivas & Investimento Rural')}
+                <InlineEditable textKey="hero.badge">
+                  {t('hero.badge', 'Terras Produtivas & Investimento Rural')}
+                </InlineEditable>
               </span>
             </div>
             <h1 
@@ -266,11 +276,17 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                 fontFamily: 'Playfair Display, serif'
               }}
             >
-              <div className="block" style={{ transform: 'skewX(-5deg)' }}>{t('hero.title_line1', 'TERRA')}</div>
-              <div className="block text-transparent bg-clip-text bg-gradient-to-b from-green-200 to-green-500" style={{ transform: 'skewX(-5deg)' }}>{t('hero.title_line2', 'PRODUTIVA')}</div>
+              <div className="block" style={{ transform: 'skewX(-5deg)' }}>
+                <InlineEditable textKey="hero.title_line1">{t('hero.title_line1', 'TERRA')}</InlineEditable>
+              </div>
+              <div className="block text-transparent bg-clip-text bg-gradient-to-b from-green-200 to-green-500" style={{ transform: 'skewX(-5deg)' }}>
+                <InlineEditable textKey="hero.title_line2">{t('hero.title_line2', 'PRODUTIVA')}</InlineEditable>
+              </div>
             </h1>
             <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto font-medium leading-relaxed italic drop-shadow-md font-serif">
-              {t('hero.subtitle', 'Fazendas, sítios e propriedades rurais de alto valor. Seu investimento no agronegócio começa aqui.')}
+              <InlineEditable textKey="hero.subtitle">
+                {t('hero.subtitle', 'Fazendas, sítios e propriedades rurais de alto valor. Seu investimento no agronegócio começa aqui.')}
+              </InlineEditable>
             </p>
           </div>
 
@@ -284,7 +300,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                 {/* Filter 1: Property Type */}
                 <div className="relative">
                   <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 block">
-                    {t('hero.search.type_label', 'Tipo')}
+                    <InlineEditable textKey="hero.search.type_label">{t('hero.search.type_label', 'Tipo')}</InlineEditable>
                   </label>
                   <select
                     value={propertyType}
@@ -301,7 +317,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                 {/* Filter 2: City */}
                 <div className="relative">
                   <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 block">
-                    {t('hero.search.city_label', 'Cidade')}
+                    <InlineEditable textKey="hero.search.city_label">{t('hero.search.city_label', 'Cidade')}</InlineEditable>
                   </label>
                   <input
                     type="text"
@@ -315,7 +331,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                 {/* Filter 3: Min Hectares */}
                 <div className="relative">
                   <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 block">
-                    {t('hero.search.min_area_label', 'Área Mín (ha)')}
+                    <InlineEditable textKey="hero.search.min_area_label">{t('hero.search.min_area_label', 'Área Mín (ha)')}</InlineEditable>
                   </label>
                   <input
                     type="number"
@@ -329,7 +345,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                 {/* Filter 4: Max Hectares */}
                 <div className="relative">
                   <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 block">
-                    {t('hero.search.max_area_label', 'Área Máx (ha)')}
+                    <InlineEditable textKey="hero.search.max_area_label">{t('hero.search.max_area_label', 'Área Máx (ha)')}</InlineEditable>
                   </label>
                   <input
                     type="number"
@@ -350,7 +366,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                     style={{ backgroundColor: settings.primaryColor }}
                   >
                     <Search size={18} />
-                    {t('hero.search.button', 'Buscar')}
+                    <InlineEditable textKey="hero.search.button">{t('hero.search.button', 'Buscar')}</InlineEditable>
                   </button>
                 </div>
 
@@ -393,9 +409,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
            
            <div className="group">
               <h3 className="text-5xl md:text-6xl font-medium text-slate-900 mb-2 tracking-tight transition-all duration-700 group-hover:-translate-y-2" style={{ fontFamily: 'Playfair Display, serif' }}>
-                +1.5k
+                <InlineEditable textKey="stats.transactions">{t('stats.transactions', '+1.5k')}</InlineEditable>
               </h3>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 group-hover:text-amber-600 transition-colors">Transações Realizadas</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 group-hover:text-amber-600 transition-colors">
+                <InlineEditable textKey="stats.transactions_label">
+                  {t('stats.transactions_label', 'Transações Realizadas')}
+                </InlineEditable>
+              </p>
            </div>
 
            <div className="hidden md:block absolute right-1/3 top-1/2 -translate-y-1/2 w-px h-16 bg-slate-200"></div>
@@ -403,16 +423,24 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
 
            <div className="group">
               <h3 className="text-5xl md:text-6xl font-medium text-slate-900 mb-2 tracking-tight transition-all duration-700 group-hover:-translate-y-2" style={{ fontFamily: 'Playfair Display, serif' }}>
-                2Bi
+                <InlineEditable textKey="stats.volume">{t('stats.volume', '2Bi')}</InlineEditable>
               </h3>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 group-hover:text-amber-600 transition-colors">Volume Geral de Vendas</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 group-hover:text-amber-600 transition-colors">
+                <InlineEditable textKey="stats.volume_label">
+                  {t('stats.volume_label', 'Volume Geral de Vendas')}
+                </InlineEditable>
+              </p>
            </div>
 
            <div className="group">
               <h3 className="text-5xl md:text-6xl font-medium text-slate-900 mb-2 tracking-tight transition-all duration-700 group-hover:-translate-y-2" style={{ fontFamily: 'Playfair Display, serif' }}>
-                15
+                <InlineEditable textKey="stats.years">{t('stats.years', '15')}</InlineEditable>
               </h3>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 group-hover:text-amber-600 transition-colors">Anos de Excelência</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 group-hover:text-amber-600 transition-colors">
+                <InlineEditable textKey="stats.years_label">
+                  {t('stats.years_label', 'Anos de Excelência')}
+                </InlineEditable>
+              </p>
            </div>
         </div>
       </section>
@@ -424,28 +452,32 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
            <div className="w-12 h-12 rounded-full mb-2 flex items-center justify-center" style={{ backgroundColor: settings.primaryColor }}>
              <Home className="text-white" size={24} />
            </div>
-           <span className="text-[8px] font-black uppercase tracking-widest leading-none">{settings.homeContent?.badgeText || 'Curadoria Especializada 2024'}</span>
+           <span className="text-[8px] font-black uppercase tracking-widest leading-none">
+             {settings.homeContent?.badgeText || t('decorative.badge_text', 'Curadoria Especializada 2024')}
+           </span>
         </div>
 
         <div className="flex flex-col md:flex-row items-end justify-between mb-24 gap-8">
           <div className="max-w-4xl w-full">
             <div className="flex gap-4 mb-6">
               <div className="px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] bg-slate-900 border border-slate-900 text-white whitespace-nowrap">
-                Venda Exclusiva de Fazendas e Sítios
+                <InlineEditable textKey="featured.badge">{t('featured.badge', 'Venda Exclusiva de Fazendas e Sítios')}</InlineEditable>
               </div>
             </div>
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-4 block" style={{ color: settings.primaryColor }}>Oportunidades de Ouro</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-4 block" style={{ color: settings.primaryColor }}>
+              <InlineEditable textKey="featured.category">{t('featured.category', 'Oportunidades de Ouro')}</InlineEditable>
+            </span>
             <h2 className="font-black mb-8 uppercase italic leading-tight" style={{ color: settings.secondaryColor, fontSize: `${(settings.headingFontSize || 48) * 0.8}px` }}>
-              {settings.homeContent?.featuredTitle ? (
-                <>
-                  {settings.homeContent.featuredTitle}
-                </>
-              ) : (
-                <>Propriedades Premium</>
-              )}
+              <InlineEditable textKey="featured.title">
+                {settings.homeContent?.featuredTitle || t('featured.title', 'Propriedades Premium')}
+              </InlineEditable>
             </h2>
             <div className="w-32 h-3 mb-8 rounded-full" style={{ backgroundColor: settings.primaryColor }}></div>
-            <p className="text-black/60 text-xl font-medium leading-relaxed italic">"{settings.homeContent?.featuredDescription || 'Nossa curadoria foca em produtividade, localização estratégica e potencial de valorização exponencial.'}"</p>
+            <p className="text-black/60 text-xl font-medium leading-relaxed italic">
+              <InlineEditable textKey="featured.description">
+                "{settings.homeContent?.featuredDescription || t('featured.description', 'Nossa curadoria foca em produtividade, localização estratégica e potencial de valorização exponencial.')}"
+              </InlineEditable>
+            </p>
           </div>
           {/* Pagination Controls Top */}
           <div className="flex gap-4">
@@ -470,10 +502,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
           {loading ? (
              <div className="col-span-3 text-center py-20">
                <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: settings.primaryColor }}></div>
-               <span className="text-slate-400 font-bold uppercase tracking-widest text-xs">Buscando Propriedades...</span>
+               <span className="text-slate-400 font-bold uppercase tracking-widest text-xs">
+                 <InlineEditable textKey="properties.loading">{t('properties.loading', 'Buscando Propriedades...')}</InlineEditable>
+               </span>
              </div>
           ) : properties.length === 0 ? (
-             <div className="col-span-3 text-center py-20 text-black/60 bg-slate-50 rounded-3xl border border-dashed">Nenhum imóvel encontrado.</div>
+             <div className="col-span-3 text-center py-20 text-black/60 bg-slate-50 rounded-3xl border border-dashed">
+               <InlineEditable textKey="properties.empty">{t('properties.empty', 'Nenhum imóvel encontrado.')}</InlineEditable>
+             </div>
           ) : (
             currentProperties.map((property) => (
             <div 
@@ -490,7 +526,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                  </div>
                  {property.type === PropertyType.FAZENDA && (
                     <div className="bg-black/80 backdrop-blur-md text-white px-4 py-2 rounded-full shadow-lg">
-                       <span className="text-[9px] font-black uppercase tracking-widest">Fazenda</span>
+                       <span className="text-[9px] font-black uppercase tracking-widest">
+                         <InlineEditable textKey="property_type.farm_badge">{t('property_type.farm_badge', 'Fazenda')}</InlineEditable>
+                       </span>
                     </div>
                  )}
               </div>
@@ -523,7 +561,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                        ) : (
                            <div className="flex flex-col items-center gap-4 opacity-20">
                                <Home size={64} />
-                               <span className="text-xs font-black uppercase tracking-widest">Sem Foto</span>
+                               <span className="text-xs font-black uppercase tracking-widest">
+                                 <InlineEditable textKey="properties.no_photo">{t('properties.no_photo', 'Sem Foto')}</InlineEditable>
+                               </span>
                            </div>
                        )}
                    </div>
@@ -548,12 +588,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                       {property.features.casaSede && (
                         <div className="flex items-center gap-2">
                           <Home size={16} strokeWidth={1.5} />
-                          <span className="text-xs font-medium">Casa Sede</span>
+                          <span className="text-xs font-medium">
+                            <InlineEditable textKey="property_feature.main_house">{t('property_feature.main_house', 'Casa Sede')}</InlineEditable>
+                          </span>
                         </div>
                       )}
                       {property.features.temGado && (
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium">🐄 Gado</span>
+                          <span className="text-xs font-medium">🐄 <InlineEditable textKey="property_feature.cattle">{t('property_feature.cattle', 'Gado')}</InlineEditable></span>
                         </div>
                       )}
                    </div>
@@ -563,9 +605,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
               {/* Bottom Minimal Info */}
               <div className="p-8 bg-white flex items-center justify-between">
                 <div>
-                   <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] mb-1">Valor de Venda</p>
+                   <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] mb-1">
+                    {t('properties.price_label', 'Valor de Venda')}
+                   </p>
                    <p className="text-2xl font-medium tracking-tight text-slate-900" style={{ fontFamily: 'Playfair Display, serif' }}>
-                     {property.price > 0 ? property.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Sob Consulta'}
+                     {property.price > 0 ? property.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : t('properties.price_on_request', 'Sob Consulta')}
                    </p>
                 </div>
                 <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors duration-300 shadow-sm">
@@ -580,7 +624,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
         {!loading && totalPages > 1 && (
             <div className="mt-16 flex flex-col items-center justify-center gap-6">
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                    Página {currentPage} de {totalPages}
+                    {t('pagination.page', 'Página')} {currentPage} {t('pagination.of', 'de')} {totalPages}
                 </span>
                 <div className="flex gap-4">
                     <button 
@@ -608,13 +652,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
           {/* Header */}
           <div className="text-center mb-20">
             <h2 className="text-5xl md:text-7xl font-black uppercase mb-6" style={{ color: settings.primaryColor }}>
-              {t('services.title', 'Nossos Serviços')}
+              <InlineEditable textKey="services.title">{t('services.title', 'Nossos Serviços')}</InlineEditable>
             </h2>
             <p className="text-2xl md:text-3xl font-bold mb-4" style={{ color: settings.secondaryColor }}>
-              {t('services.subtitle', 'Especialistas em Propriedades Rurais')}
+              <InlineEditable textKey="services.subtitle">{t('services.subtitle', 'Especialistas em Propriedades Rurais')}</InlineEditable>
             </p>
             <p className="text-slate-600 text-lg max-w-3xl mx-auto leading-relaxed">
-              {t('services.description', 'Conectamos investidores a fazendas e sítios de alto potencial produtivo. Experiência comprovada no mercado de terras rurais do Brasil.')}
+              <InlineEditable textKey="services.description">{t('services.description', 'Conectamos investidores a fazendas e sítios de alto potencial produtivo. Experiência comprovada no mercado de terras rurais do Brasil.')}</InlineEditable>
             </p>
           </div>
 
@@ -636,23 +680,23 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
-                  <h3 className="text-2xl font-black text-white uppercase">{t('services.buy.title', 'Compra')}</h3>
+                  <h3 className="text-2xl font-black text-white uppercase"><InlineEditable textKey="services.buy.title">{t('services.buy.title', 'Compra')}</InlineEditable></h3>
                 </div>
               </div>
               <div className="p-8">
-                <h4 className="text-2xl font-bold mb-4 text-slate-900">{t('services.buy.subtitle', 'Aquisição de Fazendas e Sítios')}</h4>
+                <h4 className="text-2xl font-bold mb-4 text-slate-900"><InlineEditable textKey="services.buy.subtitle">{t('services.buy.subtitle', 'Aquisição de Fazendas e Sítios')}</InlineEditable></h4>
                 <ul className="space-y-3 text-slate-600">
                   <li className="flex items-start gap-3">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>{t('services.buy.feature1', 'Análise técnica de solo e recursos hídricos')}</span>
+                    <span><InlineEditable textKey="services.buy.feature1">{t('services.buy.feature1', 'Análise técnica de solo e recursos hídricos')}</InlineEditable></span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>{t('services.buy.feature2', 'Avaliação de potencial produtivo e rentabilidade')}</span>
+                    <span><InlineEditable textKey="services.buy.feature2">{t('services.buy.feature2', 'Avaliação de potencial produtivo e rentabilidade')}</InlineEditable></span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>{t('services.buy.feature3', 'Due diligence completa e segurança jurídica')}</span>
+                    <span><InlineEditable textKey="services.buy.feature3">{t('services.buy.feature3', 'Due diligence completa e segurança jurídica')}</InlineEditable></span>
                   </li>
                 </ul>
               </div>
@@ -673,23 +717,23 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <h3 className="text-2xl font-black text-white uppercase">{t('services.sell.title', 'Venda')}</h3>
+                  <h3 className="text-2xl font-black text-white uppercase"><InlineEditable textKey="services.sell.title">{t('services.sell.title', 'Venda')}</InlineEditable></h3>
                 </div>
               </div>
               <div className="p-8">
-                <h4 className="text-2xl font-bold mb-4 text-slate-900">{t('services.sell.subtitle', 'Comercialização Estratégica')}</h4>
+                <h4 className="text-2xl font-bold mb-4 text-slate-900"><InlineEditable textKey="services.sell.subtitle">{t('services.sell.subtitle', 'Comercialização Estratégica')}</InlineEditable></h4>
                 <ul className="space-y-3 text-slate-600">
                   <li className="flex items-start gap-3">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>{t('services.sell.feature1', 'Marketing direcionado a investidores qualificados')}</span>
+                    <span><InlineEditable textKey="services.sell.feature1">{t('services.sell.feature1', 'Marketing direcionado a investidores qualificados')}</InlineEditable></span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>{t('services.sell.feature2', 'Precificação baseada em análise de mercado')}</span>
+                    <span><InlineEditable textKey="services.sell.feature2">{t('services.sell.feature2', 'Precificação baseada em análise de mercado')}</InlineEditable></span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>{t('services.sell.feature3', 'Negociação profissional e confidencial')}</span>
+                    <span><InlineEditable textKey="services.sell.feature3">{t('services.sell.feature3', 'Negociação profissional e confidencial')}</InlineEditable></span>
                   </li>
                 </ul>
               </div>
@@ -710,23 +754,23 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
-                  <h3 className="text-2xl font-black text-white uppercase">{t('services.consulting.title', 'Consultoria')}</h3>
+                  <h3 className="text-2xl font-black text-white uppercase"><InlineEditable textKey="services.consulting.title">{t('services.consulting.title', 'Consultoria')}</InlineEditable></h3>
                 </div>
               </div>
               <div className="p-8">
-                <h4 className="text-2xl font-bold mb-4 text-slate-900">{t('services.consulting.subtitle', 'Assessoria Especializada')}</h4>
+                <h4 className="text-2xl font-bold mb-4 text-slate-900"><InlineEditable textKey="services.consulting.subtitle">{t('services.consulting.subtitle', 'Assessoria Especializada')}</InlineEditable></h4>
                 <ul className="space-y-3 text-slate-600">
                   <li className="flex items-start gap-3">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>{t('services.consulting.feature1', 'Regularização fundiária e ambiental')}</span>
+                    <span><InlineEditable textKey="services.consulting.feature1">{t('services.consulting.feature1', 'Regularização fundiária e ambiental')}</InlineEditable></span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>{t('services.consulting.feature2', 'Planejamento de uso e viabilidade econômica')}</span>
+                    <span><InlineEditable textKey="services.consulting.feature2">{t('services.consulting.feature2', 'Planejamento de uso e viabilidade econômica')}</InlineEditable></span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>{t('services.consulting.feature3', 'Suporte em financiamento e crédito rural')}</span>
+                    <span><InlineEditable textKey="services.consulting.feature3">{t('services.consulting.feature3', 'Suporte em financiamento e crédito rural')}</InlineEditable></span>
                   </li>
                 </ul>
               </div>
@@ -749,11 +793,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                 
                 {/* Main photo container */}
                 <div className="relative rounded-3xl overflow-hidden shadow-2xl">
-                  <img 
-                    src={settings.homeContent?.broker?.photoUrl || "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=800&q=80"} 
-                    alt="Especialista em Propriedades Rurais" 
-                    className="w-full h-auto"
-                  />
+                  <ImageEditable textKey="about.broker_photo">
+                    <img 
+                      src={settings.homeContent?.broker?.photoUrl || "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=800&q=80"} 
+                      alt="Especialista em Propriedades Rurais" 
+                      className="w-full h-auto"
+                    />
+                  </ImageEditable>
                   
                   {/* Badge overlay */}
                   <div className="absolute bottom-6 left-6 right-6 bg-white/95 backdrop-blur-sm rounded-2xl p-6 shadow-xl">
@@ -764,8 +810,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                         </svg>
                       </div>
                       <div>
-                        <p className="text-xs font-black uppercase tracking-wider text-slate-400">{t('about.creci_badge', 'Especialista Certificado')}</p>
-                        <p className="text-sm font-bold text-slate-900">{t('about.creci_info', 'CRECI Ativo • 20+ Anos')}</p>
+                        <p className="text-xs font-black uppercase tracking-wider text-slate-400"><InlineEditable textKey="about.creci_badge">{t('about.creci_badge', 'Especialista Certificado')}</InlineEditable></p>
+                        <p className="text-sm font-bold text-slate-900"><InlineEditable textKey="about.creci_info">{t('about.creci_info', 'CRECI Ativo • 20+ Anos')}</InlineEditable></p>
                       </div>
                     </div>
                   </div>
@@ -774,8 +820,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                 {/* Stats cards */}
                 <div className="absolute -right-8 top-1/4 hidden lg:block">
                   <div className="bg-white rounded-2xl shadow-xl p-6 w-32">
-                    <p className="text-3xl font-black mb-1" style={{ color: settings.primaryColor }}>{t('about.stat_properties', '500+')}</p>
-                    <p className="text-xs font-bold text-slate-600">{t('about.stat_properties_label', 'Propriedades Vendidas')}</p>
+                    <p className="text-3xl font-black mb-1" style={{ color: settings.primaryColor }}><InlineEditable textKey="about.stat_properties">{t('about.stat_properties', '500+')}</InlineEditable></p>
+                    <p className="text-xs font-bold text-slate-600"><InlineEditable textKey="about.stat_properties_label">{t('about.stat_properties_label', 'Propriedades Vendidas')}</InlineEditable></p>
                   </div>
                 </div>
               </div>
@@ -784,15 +830,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
             {/* Right: Content */}
             <div>
               <span className="text-xs font-black uppercase tracking-[0.3em] mb-4 block" style={{ color: settings.primaryColor }}>
-                {t('about.badge', 'Especialista')}
+                <InlineEditable textKey="about.badge">{t('about.badge', 'Especialista')}</InlineEditable>
               </span>
               
               <h2 className="text-4xl md:text-5xl font-black uppercase leading-tight mb-6" style={{ color: settings.secondaryColor }}>
-                {t('about.title', 'Mais de 20 Anos no Mercado Rural')}
+                <InlineEditable textKey="about.title">{t('about.title', 'Mais de 20 Anos no Mercado Rural')}</InlineEditable>
               </h2>
               
               <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-                {t('about.description', 'Conectamos investidores e produtores rurais às melhores oportunidades em fazendas e sítios produtivos. Nossa experiência no agronegócio brasileiro garante segurança e rentabilidade em cada transação.')}
+                <InlineEditable textKey="about.description">{t('about.description', 'Conectamos investidores e produtores rurais às melhores oportunidades em fazendas e sítios produtivos. Nossa experiência no agronegócio brasileiro garante segurança e rentabilidade em cada transação.')}</InlineEditable>
               </p>
 
               {/* Features list */}
@@ -804,8 +850,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-bold text-slate-900 mb-1">{t('about.feature1_title', 'Análise Técnica Completa')}</h4>
-                    <p className="text-sm text-slate-600">{t('about.feature1_desc', 'Avaliação de solo, recursos hídricos e potencial produtivo')}</p>
+                    <h4 className="font-bold text-slate-900 mb-1"><InlineEditable textKey="about.feature1_title">{t('about.feature1_title', 'Análise Técnica Completa')}</InlineEditable></h4>
+                    <p className="text-sm text-slate-600"><InlineEditable textKey="about.feature1_desc">{t('about.feature1_desc', 'Avaliação de solo, recursos hídricos e potencial produtivo')}</InlineEditable></p>
                   </div>
                 </div>
 
@@ -816,8 +862,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-bold text-slate-900 mb-1">Regularização Completa</h4>
-                    <p className="text-sm text-slate-600">Documentação fundiária e licenciamento ambiental</p>
+                    <h4 className="font-bold text-slate-900 mb-1">
+                      <InlineEditable textKey="about.feature2_title">
+                        {t('about.feature2_title', 'Regularização Completa')}
+                      </InlineEditable>
+                    </h4>
+                    <p className="text-sm text-slate-600">
+                      <InlineEditable textKey="about.feature2_desc">
+                        {t('about.feature2_desc', 'Documentação fundiária e licenciamento ambiental')}
+                      </InlineEditable>
+                    </p>
                   </div>
                 </div>
 
@@ -828,8 +882,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-bold text-slate-900 mb-1">Suporte Financeiro</h4>
-                    <p className="text-sm text-slate-600">Assessoria em crédito rural e financiamento</p>
+                    <h4 className="font-bold text-slate-900 mb-1">
+                      <InlineEditable textKey="about.feature3_title">
+                        {t('about.feature3_title', 'Suporte Financeiro')}
+                      </InlineEditable>
+                    </h4>
+                    <p className="text-sm text-slate-600">
+                      <InlineEditable textKey="about.feature3_desc">
+                        {t('about.feature3_desc', 'Assessoria em crédito rural e financiamento')}
+                      </InlineEditable>
+                    </p>
                   </div>
                 </div>
               </div>
@@ -844,7 +906,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                   </svg>
-                  Falar com Especialista
+                  <InlineEditable textKey="about.cta_specialist">{t('about.cta_specialist', 'Falar com Especialista')}</InlineEditable>
                 </button>
                 
                 <button 
@@ -852,7 +914,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                   className="px-8 py-4 border-2 text-sm font-black uppercase tracking-wider hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all rounded-xl"
                   style={{ borderColor: settings.secondaryColor, color: settings.secondaryColor }}
                 >
-                  Ver Propriedades
+                  <InlineEditable textKey="about.cta_properties">{t('about.cta_properties', 'Ver Propriedades')}</InlineEditable>
                 </button>
               </div>
             </div>
@@ -864,7 +926,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
       {/* Floating WhatsApp Bridge */}
       <div className="fixed bottom-10 right-10 z-[100] group flex items-center gap-4">
         <div className="bg-white/95 backdrop-blur-md px-6 py-3 rounded-full shadow-2xl border border-slate-100 opacity-0 group-hover:opacity-100 transition-all -translate-x-4 group-hover:translate-x-0 pointer-events-none">
-          <span className="text-[10px] font-black uppercase tracking-widest text-black">Fale com um corretor agora</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-black">
+            <InlineEditable textKey="floating.whatsapp_badge">{t('floating.whatsapp_badge', 'Fale com um corretor agora')}</InlineEditable>
+          </span>
         </div>
         <button 
           onClick={() => window.open(`https://wa.me/${settings.contactPhone?.replace(/\D/g, '')}`, '_blank')}
@@ -882,9 +946,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
            {/* Brand */}
            <div className="md:col-span-1">
-              <h2 className="text-3xl font-black mb-8 tracking-tight text-white" style={{ fontFamily: 'Arial, sans-serif' }}>CONVERSAR<span className="text-green-600">.</span></h2>
+              <h2 className="text-3xl font-black mb-8 tracking-tight text-white" style={{ fontFamily: 'Arial, sans-serif' }}>
+                 <InlineEditable textKey="footer.logo_text">{t('footer.logo_text', 'CONVERSAR')}</InlineEditable><span className="text-green-600">.</span>
+               </h2>
               <p className="text-white/70 text-sm leading-relaxed mb-8">
-                 {t('about.description', 'Nossa equipe de especialistas está pronta para ajudá-lo a encontrar a propriedade rural perfeita. Entre em contato e descubra as melhores oportunidades do mercado.')}
+                 <InlineEditable textKey="footer.description">{t('footer.description', 'Nossa equipe de especialistas está pronta para ajudá-lo a encontrar a propriedade rural perfeita. Entre em contato e descubra as melhores oportunidades do mercado.')}</InlineEditable>
               </p>
               <div className="flex gap-4">
                  <button className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white hover:text-black transition-all group"><Instagram size={16} className="opacity-60 group-hover:opacity-100" /></button>
@@ -895,23 +961,25 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
 
            {/* Navigation */}
            <div>
-              <h4 className="text-sm font-black uppercase tracking-[0.2em] mb-8 text-white">Navegação</h4>
+              <h4 className="text-sm font-black uppercase tracking-[0.2em] mb-8 text-white">
+                <InlineEditable textKey="footer.nav_title">{t('footer.nav_title', 'Navegação')}</InlineEditable>
+              </h4>
               <ul className="space-y-4 text-base font-bold text-white tracking-widest uppercase">
                  <li className="hover:text-white cursor-pointer transition-colors flex items-center gap-2 group">
                     <span className="w-0 group-hover:w-2 h-px bg-green-600 transition-all"></span>
-                    {t('footer.properties_title', 'Propriedades')}
+                    <InlineEditable textKey="footer.properties_title">{t('footer.properties_title', 'Propriedades')}</InlineEditable>
                  </li>
                  <li className="hover:text-white cursor-pointer transition-colors flex items-center gap-2 group">
                     <span className="w-0 group-hover:w-2 h-px bg-green-600 transition-all"></span>
-                    {t('footer.services_title', 'Serviços')}
+                    <InlineEditable textKey="footer.services_title">{t('footer.services_title', 'Serviços')}</InlineEditable>
                  </li>
                  <li className="hover:text-white cursor-pointer transition-colors flex items-center gap-2 group">
                     <span className="w-0 group-hover:w-2 h-px bg-amber-600 transition-all"></span>
-                    {t('footer.about_title', 'Sobre')}
+                    <InlineEditable textKey="footer.about_title">{t('footer.about_title', 'Sobre')}</InlineEditable>
                  </li>
                  <li className="hover:text-white cursor-pointer transition-colors flex items-center gap-2 group">
                     <span className="w-0 group-hover:w-2 h-px bg-amber-600 transition-all"></span>
-                    {t('footer.contact_title', 'Contato')}
+                    <InlineEditable textKey="footer.contact_title">{t('footer.contact_title', 'Contato')}</InlineEditable>
                  </li>
               </ul>
            </div>
@@ -921,35 +989,45 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
               <h4 className="text-sm font-black uppercase tracking-[0.2em] mb-8 text-white">{t('footer.contact_title', 'Contato')}</h4>
               <ul className="space-y-4 text-sm text-white/70">
                  <li>
-                    <div className="font-bold text-white/40 uppercase tracking-wider text-xs mb-1">{t('header.contact_whatsapp_label', 'WhatsApp')}</div>
-                    <div className="text-white font-bold">{settings.contactPhone || '(44) 99722-3030'}</div>
+                    <div className="font-bold text-white/40 uppercase tracking-wider text-xs mb-1"><InlineEditable textKey="header.contact_whatsapp_label">{t('header.contact_whatsapp_label', 'WhatsApp')}</InlineEditable></div>
+                    <div className="text-white font-bold"><InlineEditable textKey="contact.phone_value">{t('contact.phone_value', settings.contactPhone || '(44) 99843-3030')}</InlineEditable></div>
                  </li>
                  <li>
-                    <div className="font-bold text-white/40 uppercase tracking-wider text-xs mb-1">{t('header.contact_email_label', 'Email')}</div>
-                    <div className="text-white font-bold">{settings.contactEmail || 'contato@okaimoveis.com.br'}</div>
+                    <div className="font-bold text-white/40 uppercase tracking-wider text-xs mb-1"><InlineEditable textKey="header.contact_email_label">{t('header.contact_email_label', 'Email')}</InlineEditable></div>
+                    <div className="text-white font-bold"><InlineEditable textKey="contact.email_value">{t('contact.email_value', settings.contactEmail || 'contato@okaimoveis.com.br')}</InlineEditable></div>
                  </li>
                  <li className="pt-2">
-                    <div className="font-bold text-white/40 uppercase tracking-wider text-xs">{t('footer.creci', 'CRECI 4222J PJ')}</div>
+                    <div className="font-bold text-white/40 uppercase tracking-wider text-xs"><InlineEditable textKey="footer.creci">{t('footer.creci', 'CRECI 4222J PJ')}</InlineEditable></div>
                  </li>
               </ul>
            </div>
 
            {/* Newsletter */}
            <div>
-              <h4 className="text-sm font-black uppercase tracking-[0.2em] mb-8 text-white">Exclusive Updates</h4>
-              <p className="text-white text-sm mb-6">Receba nossa curadoria mensal de oportunidades off-market.</p>
+              <h4 className="text-sm font-black uppercase tracking-[0.2em] mb-8 text-white">
+                <InlineEditable textKey="footer.newsletter_title">{t('footer.newsletter_title', 'Exclusive Updates')}</InlineEditable>
+              </h4>
+              <p className="text-white text-sm mb-6">
+                <InlineEditable textKey="footer.newsletter_desc">{t('footer.newsletter_desc', 'Receba nossa curadoria mensal de oportunidades off-market.')}</InlineEditable>
+              </p>
               <div className="flex border-b border-white/10 pb-2 group focus-within:border-white">
-                 <input type="email" placeholder="E-mail corporativo" className="bg-transparent outline-none text-white placeholder:text-white/20 w-full text-sm py-2" />
-                 <button className="text-sm font-black uppercase tracking-widest text-white hover:text-green-500 transition-colors">Assinar</button>
+                 <input 
+                  type="email" 
+                  placeholder={t('footer.newsletter_placeholder', 'E-mail corporativo')} 
+                  className="bg-transparent outline-none text-white placeholder:text-white/20 w-full text-sm py-2" 
+                />
+                 <button className="text-sm font-black uppercase tracking-widest text-white hover:text-green-500 transition-colors">
+                  <InlineEditable textKey="footer.newsletter_button">{t('footer.newsletter_button', 'Assinar')}</InlineEditable>
+                </button>
               </div>
            </div>
         </div>
         
         <div className="max-w-7xl mx-auto pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-sm uppercase tracking-[0.2em] text-white gap-4 px-6 md:px-0">
-           <p>© 2024 CONVERSAR - Propriedades Rurais.</p>
+           <p><InlineEditable textKey="footer.copyright">{t('footer.copyright', '© 2024 CONVERSAR - Propriedades Rurais.')}</InlineEditable></p>
            <div className="flex gap-8">
-              <Link to="/admin" className="hover:text-white/40 transition-colors">Admin Access</Link>
-              <span>{t('footer.creci', 'CRECI 4222J PJ')}</span>
+              <Link to="/admin" className="hover:text-white/40 transition-colors"><InlineEditable textKey="footer.admin_access">{t('footer.admin_access', 'Admin Access')}</InlineEditable></Link>
+              <span><InlineEditable textKey="footer.creci">{t('footer.creci', 'CRECI 4222J PJ')}</InlineEditable></span>
            </div>
         </div>
       </footer>
@@ -967,11 +1045,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
             </button>
             <div className="p-12 md:p-16">
               <div className="mb-10 text-center">
-                <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-4 block" style={{ color: settings.primaryColor }}>Atendimento Select</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-4 block" style={{ color: settings.primaryColor }}>
+                  <InlineEditable textKey="lead_modal.badge">{t('lead_modal.badge', 'Atendimento Select')}</InlineEditable>
+                </span>
                 <h2 className="text-3xl md:text-4xl font-black text-black uppercase italic tracking-tighter leading-none mb-4">
-                  Como podemos <br/><span style={{ color: settings.primaryColor }}>Ajudar você?</span>
+                  <InlineEditable textKey="lead_modal.title_line1">{t('lead_modal.title_line1', 'Como podemos')}</InlineEditable> <br/><span style={{ color: settings.primaryColor }}><InlineEditable textKey="lead_modal.title_line2">{t('lead_modal.title_line2', 'Ajudar você?')}</InlineEditable></span>
                 </h2>
-                <p className="text-black/60 font-medium italic">Preencha os dados abaixo e um consultor entrará em contato em instantes.</p>
+                <p className="text-black/60 font-medium italic">
+                  <InlineEditable textKey="lead_modal.subtitle">{t('lead_modal.subtitle', 'Preencha os dados abaixo e um consultor entrará em contato em instantes.')}</InlineEditable>
+                </p>
               </div>
 
               {leadSuccess ? (
@@ -985,34 +1067,40 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
               ) : (
                 <form onSubmit={handleLeadSubmit} className="space-y-6">
                   <div className="space-y-2">
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-4">Seu Nome Completo</p>
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-4">
+                      <InlineEditable textKey="lead_modal.form_name_label">{t('lead_modal.form_name_label', 'Seu Nome Completo')}</InlineEditable>
+                    </p>
                     <input 
                       required
                       type="text"
                       className="w-full px-8 py-5 rounded-full bg-slate-50 border border-slate-100 focus:border-slate-300 focus:bg-white transition-all outline-none font-bold text-slate-700" 
-                      placeholder="Ex: João da Silva"
+                      placeholder={t('lead_modal.form_name_placeholder', 'Ex: João da Silva')}
                       value={leadForm.name}
                       onChange={(e) => setLeadForm({...leadForm, name: e.target.value})}
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-4">WhatsApp</p>
+                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-4">
+                        <InlineEditable textKey="lead_modal.form_phone_label">{t('lead_modal.form_phone_label', 'WhatsApp')}</InlineEditable>
+                      </p>
                       <input 
                         required
                         type="tel"
                         className="w-full px-8 py-5 rounded-full bg-slate-50 border border-slate-100 focus:border-slate-300 focus:bg-white transition-all outline-none font-bold text-slate-700" 
-                        placeholder="(00) 00000-0000"
+                        placeholder={t('lead_modal.form_phone_placeholder', '(00) 00000-0000')}
                         value={leadForm.phone}
                         onChange={(e) => setLeadForm({...leadForm, phone: e.target.value})}
                       />
                     </div>
                     <div className="space-y-2">
-                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-4">E-mail (Opcional)</p>
+                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-4">
+                        <InlineEditable textKey="lead_modal.form_email_label">{t('lead_modal.form_email_label', 'E-mail (Opcional)')}</InlineEditable>
+                      </p>
                       <input 
                         type="email"
                         className="w-full px-8 py-5 rounded-full bg-slate-50 border border-slate-100 focus:border-slate-300 focus:bg-white transition-all outline-none font-bold text-slate-700" 
-                        placeholder="contato@email.com"
+                        placeholder={t('lead_modal.form_email_placeholder', 'contato@email.com')}
                         value={leadForm.email}
                         onChange={(e) => setLeadForm({...leadForm, email: e.target.value})}
                       />
@@ -1025,14 +1113,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                       className="w-full py-6 rounded-full font-black uppercase text-xs tracking-[0.3em] text-white transition-all shadow-xl hover:scale-105 active:scale-95 disabled:opacity-50"
                       style={{ backgroundColor: settings.primaryColor }}
                     >
-                      {isSubmittingLead ? 'Enviando...' : 'Solicitar Atendimento Exclusivo'}
+                      {isSubmittingLead ? t('lead_modal.submitting', 'Enviando...') : t('lead_modal.submit_button', 'Solicitar Atendimento Exclusivo')}
                     </button>
                   </div>
                 </form>
               )}
             </div>
             <div className="bg-slate-50 p-6 text-center border-t border-slate-100">
-               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Sua privacidade é nossa prioridade absoluta.</p>
+               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                {t('lead_modal.privacy_notice', 'Sua privacidade é nossa prioridade absoluta.')}
+               </p>
             </div>
           </div>
         </div>
@@ -1049,16 +1139,20 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                
                <div className="relative z-10">
                  <div className="mb-12">
-                   <h2 className="text-white text-2xl font-black italic tracking-tighter uppercase leading-tight">Venda seu<br/><span style={{ color: settings.primaryColor }}>Imóvel Elite</span></h2>
-                   <p className="text-lg font-medium tracking-tight opacity-70">Curadoria de Luxo</p>
+                   <h2 className="text-white text-2xl font-black italic tracking-tighter uppercase leading-tight">
+                     <InlineEditable textKey="submit_modal.sidebar_title_line1">{t('submit_modal.sidebar_title_line1', 'Venda seu')}</InlineEditable> <br/><span style={{ color: settings.primaryColor }}><InlineEditable textKey="submit_modal.sidebar_title_line2">{t('submit_modal.sidebar_title_line2', 'Imóvel Elite')}</InlineEditable></span>
+                   </h2>
+                   <p className="text-lg font-medium tracking-tight opacity-70">
+                     <InlineEditable textKey="submit_modal.sidebar_subtitle">{t('submit_modal.sidebar_subtitle', 'Curadoria de Luxo')}</InlineEditable>
+                   </p>
                  </div>
 
                  <div className="space-y-10">
                    {[
-                     { step: 1, label: 'Proprietário', icon: Info },
-                     { step: 2, label: 'O Imóvel', icon: Home },
-                     { step: 3, label: 'Localização', icon: MapPin },
-                     { step: 4, label: 'Mídias', icon: ImageIcon },
+                     { step: 1, label: t('submit_modal.step1_label', 'Proprietário'), icon: Info },
+                     { step: 2, label: t('submit_modal.step2_label', 'O Imóvel'), icon: Home },
+                     { step: 3, label: t('submit_modal.step3_label', 'Localização'), icon: MapPin },
+                     { step: 4, label: t('submit_modal.step4_label', 'Mídias'), icon: ImageIcon },
                    ].map((item) => (
                      <div key={item.step} className="flex items-center gap-5 group cursor-default">
                         <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-500 ${
@@ -1079,7 +1173,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
 
                <div className="relative z-10 mt-12 pt-10 border-t border-white/10 hidden md:block">
                   <p className="text-[10px] text-white/30 font-medium leading-relaxed uppercase tracking-tighter">
-                    Ao submeter, você concorda que nossa equipe fará uma análise técnica detalhada antes da publicação final.
+                    <InlineEditable textKey="submit_modal.disclaimer">{t('submit_modal.disclaimer', 'Ao submeter, você concorda que nossa equipe fará uma análise técnica detalhada antes da publicação final.')}</InlineEditable>
                   </p>
                </div>
             </div>
@@ -1104,31 +1198,37 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                       <CheckCircle2 size={48} strokeWidth={3} />
                     </div>
                   </div>
-                  <h3 className="text-4xl font-black italic uppercase tracking-tighter mb-4" style={{ color: settings.secondaryColor }}>Proposta Recebida!</h3>
+                   <h3 className="text-4xl font-black italic uppercase tracking-tighter mb-4" style={{ color: settings.secondaryColor }}>
+                    <InlineEditable textKey="submit_modal.success_title">{t('submit_modal.success_title', 'Proposta Recebida!')}</InlineEditable>
+                  </h3>
                   <p className="text-black/60 max-w-sm mx-auto leading-relaxed font-medium">
-                    Excelente escolha. Nossa equipe de elite já foi notificada e entrará em contato em breve para os próximos passos.
+                    <InlineEditable textKey="submit_modal.success_desc">{t('submit_modal.success_desc', 'Excelente escolha. Nossa equipe de elite já foi notificada e entrará em contato em breve para os próximos passos.')}</InlineEditable>
                   </p>
                   <button 
                     onClick={() => setIsSubmitModalOpen(false)}
                     className="mt-12 px-12 py-5 text-white rounded-full font-black uppercase text-[11px] tracking-[0.3em] shadow-2xl hover:scale-105 active:scale-95 transition-all"
                     style={{ backgroundColor: settings.secondaryColor }}
                   >
-                    Voltar para Home
+                    <InlineEditable textKey="submit_modal.success_button">{t('submit_modal.success_button', 'Voltar para Home')}</InlineEditable>
                   </button>
                 </div>
               ) : (
                 <div className="flex-1 overflow-y-auto px-8 md:px-20 pb-10 custom-scrollbar flex flex-col">
                   {/* Steps Content */}
                   <div className="flex-1">
-                    {activeStep === 1 && (
+                     {activeStep === 1 && (
                       <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-10">
                          <div>
-                            <h3 className="text-3xl font-black italic uppercase tracking-tighter mb-2" style={{ color: settings.secondaryColor }}>Quem é o proprietário?</h3>
-                            <p className="text-black/60 font-medium">Inicie com as informações básicas de contato.</p>
+                            <h3 className="text-3xl font-black italic uppercase tracking-tighter mb-2" style={{ color: settings.secondaryColor }}>
+                              <InlineEditable textKey="submit_modal.step1_title">{t('submit_modal.step1_title', 'Quem é o proprietário?')}</InlineEditable>
+                            </h3>
+                            <p className="text-black/60 font-medium"><InlineEditable textKey="submit_modal.step1_subtitle">{t('submit_modal.step1_subtitle', 'Inicie com as informações básicas de contato.')}</InlineEditable></p>
                          </div>
                          <div className="grid grid-cols-1 gap-8">
                             <div className="group">
-                              <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1 transition-colors group-focus-within:text-black">Nome Completo</label>
+                              <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1 transition-colors group-focus-within:text-black">
+                                <InlineEditable textKey="submit_modal.field_name_label">{t('submit_modal.field_name_label', 'Nome Completo')}</InlineEditable>
+                              </label>
                               <input 
                                 required type="text" 
                                 value={propertyForm.ownerInfo?.name}
@@ -1137,12 +1237,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                                 style={{ '--tw-ring-color': settings.primaryColor + '15', borderColor: 'var(--focus-border-color)' } as any}
                                 onFocus={(e) => e.target.style.borderColor = settings.primaryColor}
                                 onBlur={(e) => e.target.style.borderColor = ''}
-                                placeholder="Ex: Rodrigo Albuquerque"
+                                placeholder={t('submit_modal.field_name_placeholder', 'Ex: Rodrigo Albuquerque')}
                               />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="group">
-                                  <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1">E-mail Corporativo</label>
+                                  <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1">
+                                    <InlineEditable textKey="submit_modal.field_email_label">{t('submit_modal.field_email_label', 'E-mail Corporativo')}</InlineEditable>
+                                  </label>
                                   <input 
                                     required type="email" 
                                     value={propertyForm.ownerInfo?.email}
@@ -1150,11 +1252,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                                     className="w-full px-8 py-6 bg-white border border-slate-100 rounded-3xl text-sm font-bold text-slate-700 focus:ring-4 outline-none transition-all shadow-sm"
                                     onFocus={(e) => e.target.style.borderColor = settings.primaryColor}
                                     onBlur={(e) => e.target.style.borderColor = ''}
-                                    placeholder="rodrigo@email.com"
+                                    placeholder={t('submit_modal.field_email_placeholder', 'rodrigo@email.com')}
                                   />
                                 </div>
                                 <div className="group">
-                                  <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1">WhatsApp Direto</label>
+                                  <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1">
+                                    <InlineEditable textKey="submit_modal.field_phone_label">{t('submit_modal.field_phone_label', 'WhatsApp Direto')}</InlineEditable>
+                                  </label>
                                   <input 
                                     required type="tel" 
                                     value={propertyForm.ownerInfo?.phone}
@@ -1162,7 +1266,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                                     className="w-full px-8 py-6 bg-white border border-slate-100 rounded-3xl text-sm font-bold text-slate-700 focus:ring-4 outline-none transition-all shadow-sm"
                                     onFocus={(e) => e.target.style.borderColor = settings.primaryColor}
                                     onBlur={(e) => e.target.style.borderColor = ''}
-                                    placeholder="(00) 00000-0000"
+                                    placeholder={t('submit_modal.field_phone_placeholder', '(00) 00000-0000')}
                                   />
                                 </div>
                             </div>
@@ -1170,15 +1274,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                       </div>
                     )}
 
-                    {activeStep === 2 && (
+                     {activeStep === 2 && (
                       <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-10">
                          <div>
-                            <h3 className="text-3xl font-black italic uppercase tracking-tighter mb-2" style={{ color: settings.secondaryColor }}>Detalhes do Imóvel</h3>
-                            <p className="text-black/60 font-medium">O que torna sua propriedade única?</p>
+                            <h3 className="text-3xl font-black italic uppercase tracking-tighter mb-2" style={{ color: settings.secondaryColor }}>
+                              <InlineEditable textKey="submit_modal.step2_title">{t('submit_modal.step2_title', 'Detalhes do Imóvel')}</InlineEditable>
+                            </h3>
+                            <p className="text-black/60 font-medium">
+                              <InlineEditable textKey="submit_modal.step2_subtitle">{t('submit_modal.step2_subtitle', 'O que torna sua propriedade única?')}</InlineEditable>
+                            </p>
                          </div>
                          <div className="space-y-8">
                             <div className="group">
-                               <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1">Título de Impacto</label>
+                               <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1">
+                                <InlineEditable textKey="submit_modal.field_title_impact">{t('submit_modal.field_title_impact', 'Título de Impacto')}</InlineEditable>
+                               </label>
                                <input 
                                 required type="text" 
                                 value={propertyForm.title}
@@ -1186,12 +1296,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                                 className="w-full px-8 py-6 bg-white border border-slate-100 rounded-3xl text-sm font-bold text-slate-700 focus:ring-4 outline-none transition-all shadow-sm"
                                 onFocus={(e) => e.target.style.borderColor = settings.primaryColor}
                                 onBlur={(e) => e.target.style.borderColor = ''}
-                                placeholder="Ex: Mansão suspensa com vista definitiva para o mar"
+                                placeholder={t('submit_modal.field_title_placeholder', 'Ex: Mansão suspensa com vista definitiva para o mar')}
                               />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="group">
-                                  <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1">Tipo de Imóvel</label>
+                                 <div className="group">
+                                  <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1">
+                                    <InlineEditable textKey="submit_modal.field_type_label">{t('submit_modal.field_type_label', 'Tipo de Imóvel')}</InlineEditable>
+                                  </label>
                                   <div className="relative">
                                     <select 
                                       className="w-full px-8 py-6 bg-white border border-slate-100 rounded-3xl text-sm font-bold text-slate-700 focus:ring-4 outline-none appearance-none cursor-pointer shadow-sm transition-all"
@@ -1200,16 +1312,18 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                                       onFocus={(e) => e.target.style.borderColor = settings.primaryColor}
                                       onBlur={(e) => e.target.style.borderColor = ''}
                                     >
-                                      <option value="Apartamento">Apartamento de Alto Padrão</option>
-                                      <option value="Casa">Casa / Villa de Luxo</option>
-                                      <option value="Terreno">Fazenda / Haras / Rural</option>
-                                      <option value="Comercial">Corporativo / Industrial</option>
+                                      <option value="Apartamento">{t('property_type.apt', 'Apartamento de Alto Padrão')}</option>
+                                      <option value="Casa">{t('property_type.house', 'Casa / Villa de Luxo')}</option>
+                                      <option value="Terreno">{t('property_type.farm', 'Fazenda / Haras / Rural')}</option>
+                                      <option value="Comercial">{t('property_type.com', 'Corporativo / Industrial')}</option>
                                     </select>
                                     <ChevronRight className="absolute right-8 top-1/2 -translate-y-1/2 rotate-90 text-slate-400 pointer-events-none" size={16} />
                                   </div>
                                 </div>
                                 <div className="group">
-                                  <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1">Preço Sugerido (R$)</label>
+                                  <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1">
+                                    <InlineEditable textKey="submit_modal.field_price_label">{t('submit_modal.field_price_label', 'Preço Sugerido (R$)')}</InlineEditable>
+                                  </label>
                                   <input 
                                     type="number" 
                                     value={propertyForm.price}
@@ -1222,7 +1336,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                                 </div>
                             </div>
                             <div className="group w-1/2">
-                              <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1">Área Privativa (m²)</label>
+                              <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1">
+                                <InlineEditable textKey="submit_modal.field_area_label">{t('submit_modal.field_area_label', 'Área Privativa (m²)')}</InlineEditable>
+                              </label>
                               <input 
                                 type="number" 
                                 value={propertyForm.features?.area}
@@ -1236,15 +1352,19 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                       </div>
                     )}
 
-                    {activeStep === 3 && (
+                     {activeStep === 3 && (
                       <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-10">
                          <div>
-                            <h3 className="text-3xl font-black italic uppercase tracking-tighter mb-2" style={{ color: settings.secondaryColor }}>Onde fica?</h3>
-                            <p className="text-black/60 font-medium">Sua localização deve ser precisa para valorizar o m².</p>
+                            <h3 className="text-3xl font-black italic uppercase tracking-tighter mb-2" style={{ color: settings.secondaryColor }}>
+                              <InlineEditable textKey="submit_modal.step3_title">{t('submit_modal.step3_title', 'Onde fica?')}</InlineEditable>
+                            </h3>
+                            <p className="text-black/60 font-medium"><InlineEditable textKey="submit_modal.step3_subtitle">{t('submit_modal.step3_subtitle', 'Sua localização deve ser precisa para valorizar o m².')}</InlineEditable></p>
                          </div>
                          <div className="space-y-8">
                             <div className="group">
-                               <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1">Endereço Completo</label>
+                               <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1">
+                                <InlineEditable textKey="submit_modal.field_address_label">{t('submit_modal.field_address_label', 'Endereço Completo')}</InlineEditable>
+                               </label>
                                <input 
                                 required type="text" 
                                 value={propertyForm.location?.address}
@@ -1252,12 +1372,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                                 className="w-full px-8 py-6 bg-white border border-slate-100 rounded-3xl text-sm font-bold text-slate-700 focus:ring-4 outline-none transition-all shadow-sm"
                                 onFocus={(e) => e.target.style.borderColor = settings.primaryColor}
                                 onBlur={(e) => e.target.style.borderColor = ''}
-                                placeholder="Rua, número e CEP"
+                                placeholder={t('submit_modal.field_address_placeholder', 'Rua, número e CEP')}
                               />
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="group">
-                                   <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1">Cidade / Munícipio</label>
+                                   <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1">
+                                    <InlineEditable textKey="submit_modal.field_city_label">{t('submit_modal.field_city_label', 'Cidade / Munícipio')}</InlineEditable>
+                                   </label>
                                    <input 
                                     required type="text" 
                                     value={propertyForm.location?.city}
@@ -1265,11 +1387,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                                     className="w-full px-8 py-6 bg-white border border-slate-100 rounded-3xl text-sm font-bold text-slate-700 focus:ring-4 outline-none transition-all shadow-sm"
                                     onFocus={(e) => e.target.style.borderColor = settings.primaryColor}
                                     onBlur={(e) => e.target.style.borderColor = ''}
-                                    placeholder="Ex: Ribeirão Preto"
+                                    placeholder={t('submit_modal.field_city_placeholder', 'Ex: Ribeirão Preto')}
                                   />
                                 </div>
                                 <div className="group">
-                                   <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1">Bairro / Região</label>
+                                   <label className="text-[10px] font-black uppercase text-slate-400 block mb-3 tracking-widest ml-1">
+                                    <InlineEditable textKey="submit_modal.field_neighborhood_label">{t('submit_modal.field_neighborhood_label', 'Bairro / Região')}</InlineEditable>
+                                   </label>
                                    <input 
                                     required type="text" 
                                     value={propertyForm.location?.neighborhood}
@@ -1277,7 +1401,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                                     className="w-full px-8 py-6 bg-white border border-slate-100 rounded-3xl text-sm font-bold text-slate-700 focus:ring-4 outline-none transition-all shadow-sm"
                                     onFocus={(e) => e.target.style.borderColor = settings.primaryColor}
                                     onBlur={(e) => e.target.style.borderColor = ''}
-                                    placeholder="Ex: Jardim Botânico"
+                                    placeholder={t('submit_modal.field_neighborhood_placeholder', 'Ex: Jardim Botânico')}
                                   />
                                 </div>
                             </div>
@@ -1288,8 +1412,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                     {activeStep === 4 && (
                       <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-10">
                          <div>
-                            <h3 className="text-3xl font-black italic uppercase tracking-tighter mb-2" style={{ color: settings.secondaryColor }}>Visuais & Galeria</h3>
-                            <p className="text-black/60 font-medium">Bons visuais aumentam a conversão em até 80%.</p>
+                            <h3 className="text-3xl font-black italic uppercase tracking-tighter mb-2" style={{ color: settings.secondaryColor }}>
+                              <InlineEditable textKey="submit_modal.step4_title">{t('submit_modal.step4_title', 'Visuais & Galeria')}</InlineEditable>
+                            </h3>
+                            <p className="text-black/60 font-medium">
+                              <InlineEditable textKey="submit_modal.step4_subtitle">{t('submit_modal.step4_subtitle', 'Bons visuais aumentam a conversão em até 80%.')}</InlineEditable>
+                            </p>
                          </div>
                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                             {propertyForm.images?.map((img, idx) => (
@@ -1306,7 +1434,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                                   <div className="w-16 h-16 bg-slate-50 rounded-3xl flex items-center justify-center mb-4 group-hover:text-white transition-all" style={{ backgroundColor: 'var(--hover-bg, #f8fafc)' } as any} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = settings.secondaryColor} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}>
                                     <Plus size={24} />
                                   </div>
-                                  <span className="text-[10px] font-black uppercase tracking-widest text-center px-4">Adicionar<br/>Fotografias</span>
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-center px-4">
+                                    <InlineEditable textKey="submit_modal.add_photos">{t('submit_modal.add_photos', 'Adicionar Fotografias')}</InlineEditable>
+                                  </span>
                                 </>
                               )}
                               <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
@@ -1324,7 +1454,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                        disabled={activeStep === 1}
                        className="text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-black disabled:opacity-0 transition-all flex items-center gap-2"
                      >
-                       <ChevronRight className="rotate-180" size={16} /> Voltar
+                       <ChevronRight className="rotate-180" size={16} /> <InlineEditable textKey="submit_modal.nav_back">{t('submit_modal.nav_back', 'Voltar')}</InlineEditable>
                      </button>
                      
                      {activeStep < 4 ? (
@@ -1334,7 +1464,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                         className="px-12 py-5 text-white rounded-full font-black uppercase text-[11px] tracking-[0.3em] shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 group"
                         style={{ backgroundColor: settings.primaryColor, color: getContrastColor(settings.primaryColor) }}
                        >
-                         Continuar para Passo 0{activeStep + 1}
+                         <InlineEditable textKey="submit_modal.nav_continue">{t('submit_modal.nav_continue', 'Continuar para Passo 0')}</InlineEditable> {activeStep + 1}
                          <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
                        </button>
                      ) : (
@@ -1346,7 +1476,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ organizationId }) => {
                         style={{ backgroundColor: settings.primaryColor, color: getContrastColor(settings.primaryColor) }}
                        >
                          {isSubmittingProperty ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
-                         Finalizar Submissão
+                         <InlineEditable textKey="submit_modal.nav_finish">{t('submit_modal.nav_finish', 'Finalizar Submissão')}</InlineEditable>
                        </button>
                      )}
                   </div>

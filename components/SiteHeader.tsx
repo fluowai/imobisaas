@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Home, Phone, Mail, Instagram, Facebook, Youtube, ChevronDown, User, Menu, X, MessageCircle } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { useTexts } from '../context/TextsContext';
+import InlineEditable from './InlineEditable';
+import ImageEditable from './ImageEditable';
 import { useNavigate } from 'react-router-dom';
 
 const SiteHeader: React.FC = () => {
@@ -17,20 +19,7 @@ const SiteHeader: React.FC = () => {
   const isTenantSite = currentPath !== '/' && !currentPath.startsWith('/admin') && !currentPath.startsWith('/login');
 
   const handleLoginClick = () => {
-      if (isTenantSite) {
-          // If we are at /slug, append /site/login
-          // Assuming /slug is the only segment for now or handled by router
-          // A safer way if we are using PublicLandingPage wrapper is that the root is /slug
-          // But SiteHeader doesn't know. 
-          // Let's assume currentPath is /imobiliaria-fazendas-brasil or similar
-          // If we just add /site/login to current, it might be /slug/site/login
-           
-          // Remove trailing slash
-          const cleanPath = currentPath.endsWith('/') ? currentPath.slice(0, -1) : currentPath;
-          navigate(`${cleanPath}/site/login`);
-      } else {
-          navigate('/login');
-      }
+      navigate('/login');
   };
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -64,17 +53,17 @@ const SiteHeader: React.FC = () => {
       {/* 1. TOP BAR (Primary Color) */}
       <div className="w-full text-white text-[11px] font-bold py-2 px-4 md:px-6 flex justify-between items-center" style={{ backgroundColor: settings.primaryColor }}>
         <div className="flex flex-wrap gap-4 md:gap-8 items-center">
-            <span>{t('header.creci', 'CRECI/PR 4.222J')}</span>
-            <button className="hover:underline">{t('header.cta_register', 'Cadastre sua Propriedade Rural')}</button>
+            <span><InlineEditable textKey="header.creci">{t('header.creci', 'CRECI/PR 4.222J')}</InlineEditable></span>
+            <button className="hover:underline"><InlineEditable textKey="header.cta_register">{t('header.cta_register', 'Cadastre sua Propriedade Rural')}</InlineEditable></button>
         </div>
         <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-2">
-                <span className="opacity-80">{t('header.translate_label', 'TRADUZIR SITE:')}</span>
+                <span className="opacity-80"><InlineEditable textKey="header.translate_label">{t('header.translate_label', 'TRADUZIR SITE:')}</InlineEditable></span>
                 <select className="bg-white text-black text-xs rounded px-2 py-0.5 outline-none cursor-pointer">
-                    <option>{t('header.language_select', 'Selecione o idioma')}</option>
-                    <option>Português</option>
-                    <option>English</option>
-                    <option>Español</option>
+                    <option><InlineEditable textKey="header.language_select">{t('header.language_select', 'Selecione o idioma')}</InlineEditable></option>
+                    <option>{t('header.language_pt', 'Português')}</option>
+                    <option>{t('header.language_en', 'English')}</option>
+                    <option>{t('header.language_es', 'Español')}</option>
                 </select>
             </div>
             <button 
@@ -82,7 +71,7 @@ const SiteHeader: React.FC = () => {
                 className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded flex items-center gap-2 transition-colors"
             >
                 <User size={12} />
-                {t('header.login_button', 'Acessar Sistema')}
+                <InlineEditable textKey="header.login_button">{t('header.login_button', 'Acessar Sistema')}</InlineEditable>
             </button>
         </div>
       </div>
@@ -93,7 +82,9 @@ const SiteHeader: React.FC = () => {
             {/* Logo */}
             <div onClick={() => navigate('/')} className="cursor-pointer">
                  {settings.logoUrl ? (
-                    <img src={settings.logoUrl} alt={settings.agencyName} className="h-16 md:h-20 object-contain" />
+                    <ImageEditable textKey="header.logo">
+                      <img src={settings.logoUrl} alt={settings.agencyName} className="h-16 md:h-20 object-contain" />
+                    </ImageEditable>
                  ) : (
                     <div className="flex items-center gap-2">
                          <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-black text-2xl" style={{ backgroundColor: settings.primaryColor }}>
@@ -101,10 +92,10 @@ const SiteHeader: React.FC = () => {
                          </div>
                          <div className="flex flex-col">
                              <span className="text-3xl font-serif text-slate-800 tracking-tight leading-none">
-                               {t('header.logo_fallback_name', 'ImobiSaaS')}
+                               <InlineEditable textKey="header.logo_fallback_name">{t('header.logo_fallback_name', 'ImobiSaaS')}</InlineEditable>
                              </span>
                              <span className="text-[10px] uppercase tracking-widest text-slate-400">
-                               {t('header.logo_fallback_subtitle', 'Propriedades Rurais')}
+                               <InlineEditable textKey="header.logo_fallback_subtitle">{t('header.logo_fallback_subtitle', 'Propriedades Rurais')}</InlineEditable>
                              </span>
                          </div>
                     </div>
@@ -116,22 +107,22 @@ const SiteHeader: React.FC = () => {
                 <div className="flex items-center gap-3">
                     <MessageCircle size={28} style={{ color: settings.primaryColor }} /> {/* Using MessageCircle for WhatsApp */}
                     <div className="flex flex-col leading-tight">
-                        <span className="text-sm font-bold">{t('header.contact_whatsapp_label', 'WhatsApp')}</span>
-                        <span className="text-sm text-slate-500">(44) 99843-3030</span>
+                        <span className="text-sm font-bold"><InlineEditable textKey="header.contact_whatsapp_label">{t('header.contact_whatsapp_label', 'WhatsApp')}</InlineEditable></span>
+                        <span className="text-sm text-slate-500"><InlineEditable textKey="contact.phone_value">{t('contact.phone_value', settings.contactPhone || '(44) 99843-3030')}</InlineEditable></span>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <Phone size={28} style={{ color: settings.primaryColor }} />
                     <div className="flex flex-col leading-tight">
-                        <span className="text-sm font-bold">{t('header.contact_phone_label', 'Telefone')}</span>
-                         <span className="text-sm text-slate-500">(44) 99843-3030</span>
+                        <span className="text-sm font-bold"><InlineEditable textKey="header.contact_phone_label">{t('header.contact_phone_label', 'Telefone')}</InlineEditable></span>
+                         <span className="text-sm text-slate-500"><InlineEditable textKey="contact.phone_value">{t('contact.phone_value', settings.contactPhone || '(44) 99843-3030')}</InlineEditable></span>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <Mail size={28} style={{ color: settings.primaryColor }} />
                     <div className="flex flex-col leading-tight">
-                        <span className="text-sm font-bold">{t('header.contact_email_label', 'Email')}</span>
-                         <span className="text-sm text-slate-500">contato@fazendasbrasil.com</span>
+                        <span className="text-sm font-bold"><InlineEditable textKey="header.contact_email_label">{t('header.contact_email_label', 'Email')}</InlineEditable></span>
+                         <span className="text-sm text-slate-500"><InlineEditable textKey="contact.email_value">{t('contact.email_value', settings.contactEmail || 'contato@fazendasbrasil.com')}</InlineEditable></span>
                     </div>
                 </div>
             </div>
@@ -148,13 +139,13 @@ const SiteHeader: React.FC = () => {
          <div className="max-w-7xl mx-auto px-4 md:px-6 h-[50px] flex items-center justify-between text-white">
              {/* Links */}
              <nav className="flex items-center gap-0 h-full">
-                 <NavItem label={t('nav.home', 'Início')} onClick={() => navigate('/')} />
-                 <NavItem label={t('nav.about', 'Sobre Nós')} hasDropdown />
-                 <NavItem label={t('nav.farms', 'Fazendas')} onClick={scrollToProperties} />
-                 <NavItem label={t('nav.ranches', 'Sítios')} onClick={scrollToProperties} />
-                 <NavItem label={t('nav.lands', 'Terras Produtivas')} onClick={scrollToProperties} />
-                 <NavItem label={t('nav.blog', 'Blog')} onClick={() => {}} />
-                 <NavItem label={t('nav.contact', 'Contato')} onClick={scrollToContact} />
+                 <NavItem label={t('nav.home', 'Início')} textKey="nav.home" onClick={() => navigate('/')} />
+                 <NavItem label={t('nav.about', 'Sobre Nós')} textKey="nav.about" hasDropdown />
+                 <NavItem label={t('nav.farms', 'Fazendas')} textKey="nav.farms" onClick={scrollToProperties} />
+                 <NavItem label={t('nav.ranches', 'Sítios')} textKey="nav.ranches" onClick={scrollToProperties} />
+                 <NavItem label={t('nav.lands', 'Terras Produtivas')} textKey="nav.lands" onClick={scrollToProperties} />
+                 <NavItem label={t('nav.blog', 'Blog')} textKey="nav.blog" onClick={() => {}} />
+                 <NavItem label={t('nav.contact', 'Contato')} textKey="nav.contact" onClick={scrollToContact} />
              </nav>
 
              {/* Socials */}
@@ -190,14 +181,15 @@ const SiteHeader: React.FC = () => {
 };
 
 // Sub-components
-const NavItem = ({ label, onClick, hasDropdown }: { label: string, onClick?: () => void, hasDropdown?: boolean }) => (
-    <div 
+const NavItem = ({ label, textKey, onClick, hasDropdown }: { label: string, textKey: string, onClick?: () => void, hasDropdown?: boolean }) => (
+    <InlineEditable 
+        textKey={textKey}
         onClick={onClick}
         className="h-full px-5 flex items-center gap-1 cursor-pointer hover:bg-black/10 transition-colors text-[13px] font-medium uppercase tracking-wide whitespace-nowrap"
     >
         {label}
         {hasDropdown && <ChevronDown size={14} className="opacity-70" />}
-    </div>
+    </InlineEditable>
 );
 
 const SocialIcon = ({ icon, dark }: { icon: React.ReactNode, dark?: boolean }) => (

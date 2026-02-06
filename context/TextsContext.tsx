@@ -10,6 +10,11 @@ interface TextsContextType {
   refresh: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
+  // Visual Editor
+  isVisualMode: boolean;
+  setVisualMode: (mode: boolean) => void;
+  activeKey: string | null;
+  setActiveKey: (key: string | null) => void;
 }
 
 const TextsContext = createContext<TextsContextType | undefined>(undefined);
@@ -22,6 +27,17 @@ export const TextsProvider: React.FC<TextsProviderProps> = ({ children }) => {
   const [texts, setTexts] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Visual Editor States
+  const [isVisualMode, setIsVisualMode] = useState(() => {
+    return localStorage.getItem('visual_edit_mode') === 'true';
+  });
+  const [activeKey, setActiveKey] = useState<string | null>(null);
+
+  const setVisualMode = (mode: boolean) => {
+    setIsVisualMode(mode);
+    localStorage.setItem('visual_edit_mode', mode.toString());
+  };
 
   // Função para carregar textos
   const loadTexts = async () => {
@@ -158,7 +174,11 @@ export const TextsProvider: React.FC<TextsProviderProps> = ({ children }) => {
     resetText,
     refresh,
     isLoading,
-    error
+    error,
+    isVisualMode,
+    setVisualMode,
+    activeKey,
+    setActiveKey
   };
 
   return (

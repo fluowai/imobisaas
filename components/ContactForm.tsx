@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Phone, MessageCircle, Send, CheckCircle2, Loader2 } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { useTexts } from '../context/TextsContext';
+import InlineEditable from './InlineEditable';
 import axios from 'axios';
 
 const ContactForm: React.FC = () => {
@@ -92,15 +93,15 @@ const ContactForm: React.FC = () => {
           {/* Left Column - Info */}
           <div className="text-white">
             <div className="inline-block px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.3em] bg-green-600/20 border border-green-600/30 text-green-400 mb-8">
-              {t('contact.badge', 'Fale Conosco')}
+              <InlineEditable textKey="contact.badge">{t('contact.badge', 'Fale Conosco')}</InlineEditable>
             </div>
             
             <h2 className="text-5xl md:text-6xl font-black uppercase italic leading-tight mb-8 tracking-tighter">
-              {t('contact.title', 'Vamos Conversar')}<span className="text-green-600">?</span>
+              <InlineEditable textKey="contact.title">{t('contact.title', 'Vamos Conversar')}</InlineEditable><span className="text-green-600">?</span>
             </h2>
             
             <p className="text-white/60 text-lg leading-relaxed mb-12">
-              {t('contact.description', 'Nossa equipe de especialistas está pronta para ajudá-lo a encontrar a propriedade rural perfeita. Entre em contato e descubra as melhores oportunidades do mercado.')}
+              <InlineEditable textKey="contact.description">{t('contact.description', 'Nossa equipe de especialistas está pronta para ajudá-lo a encontrar a propriedade rural perfeita. Entre em contato e descubra as melhores oportunidades do mercado.')}</InlineEditable>
             </p>
 
             {/* Contact Info Cards */}
@@ -110,8 +111,8 @@ const ContactForm: React.FC = () => {
                   <MessageCircle size={24} className="text-green-600 group-hover:text-white transition-colors" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-white/40 uppercase tracking-widest mb-1">{t('contact.whatsapp_label', 'WhatsApp')}</div>
-                  <div className="text-white font-bold">{settings.contactPhone || '(44) 99843-3030'}</div>
+                  <div className="text-sm font-bold text-white/40 uppercase tracking-widest mb-1"><InlineEditable textKey="contact.whatsapp_label">{t('contact.whatsapp_label', 'WhatsApp')}</InlineEditable></div>
+                  <div className="text-white font-bold"><InlineEditable textKey="contact.phone_value">{t('contact.phone_value', settings.contactPhone || '(44) 99843-3030')}</InlineEditable></div>
                 </div>
               </div>
 
@@ -120,8 +121,8 @@ const ContactForm: React.FC = () => {
                   <Mail size={24} className="text-green-600 group-hover:text-white transition-colors" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-white/40 uppercase tracking-widest mb-1">{t('contact.email_label', 'Email')}</div>
-                  <div className="text-white font-bold">{settings.contactEmail || 'contato@fazendasbrasil.com'}</div>
+                  <div className="text-sm font-bold text-white/40 uppercase tracking-widest mb-1"><InlineEditable textKey="contact.email_label">{t('contact.email_label', 'Email')}</InlineEditable></div>
+                  <div className="text-white font-bold"><InlineEditable textKey="contact.email_value">{t('contact.email_value', settings.contactEmail || 'contato@fazendasbrasil.com')}</InlineEditable></div>
                 </div>
               </div>
 
@@ -130,8 +131,8 @@ const ContactForm: React.FC = () => {
                   <Phone size={24} className="text-green-600 group-hover:text-white transition-colors" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-white/40 uppercase tracking-widest mb-1">{t('contact.phone_label', 'Telefone')}</div>
-                  <div className="text-white font-bold">{settings.contactPhone || '(44) 99843-3030'}</div>
+                  <div className="text-sm font-bold text-white/40 uppercase tracking-widest mb-1"><InlineEditable textKey="contact.phone_label">{t('contact.phone_label', 'Telefone')}</InlineEditable></div>
+                  <div className="text-white font-bold"><InlineEditable textKey="contact.phone_value">{t('contact.phone_value', settings.contactPhone || '(44) 99843-3030')}</InlineEditable></div>
                 </div>
               </div>
             </div>
@@ -143,9 +144,9 @@ const ContactForm: React.FC = () => {
             {submitSuccess && (
               <div className="absolute inset-0 bg-green-600 rounded-3xl flex flex-col items-center justify-center z-20 animate-in fade-in duration-300">
                 <CheckCircle2 size={64} className="text-white mb-6" />
-                <h3 className="text-2xl font-black text-white mb-2">{t('contact.submit_success_title', 'Mensagem Enviada!')}</h3>
+                <h3 className="text-2xl font-black text-white mb-2"><InlineEditable textKey="contact.submit_success_title">{t('contact.submit_success_title', 'Mensagem Enviada!')}</InlineEditable></h3>
                 <p className="text-white/80 text-center px-8">
-                  {t('contact.submit_success_message', 'Recebemos seu contato. Nossa equipe entrará em contato em breve!')}
+                  <InlineEditable textKey="contact.submit_success_message">{t('contact.submit_success_message', 'Recebemos seu contato. Nossa equipe entrará em contato em breve!')}</InlineEditable>
                 </p>
               </div>
             )}
@@ -155,7 +156,7 @@ const ContactForm: React.FC = () => {
                 {/* Name */}
                 <div>
                   <label className="block text-sm font-bold text-white/60 uppercase tracking-widest mb-3">
-                    {t('contact.form_name_label', 'Nome Completo')}
+                    <InlineEditable textKey="contact.form_name_label">{t('contact.form_name_label', 'Nome Completo')}</InlineEditable>
                   </label>
                   <input
                     type="text"
@@ -171,7 +172,7 @@ const ContactForm: React.FC = () => {
                 {/* Email */}
                 <div>
                   <label className="block text-sm font-bold text-white/60 uppercase tracking-widest mb-3">
-                    {t('contact.form_email_label', 'Email')}
+                    <InlineEditable textKey="contact.form_email_label">{t('contact.form_email_label', 'Email')}</InlineEditable>
                   </label>
                   <input
                     type="email"
@@ -187,7 +188,7 @@ const ContactForm: React.FC = () => {
                 {/* Phone */}
                 <div>
                   <label className="block text-sm font-bold text-white/60 uppercase tracking-widest mb-3">
-                    {t('contact.form_phone_label', 'Telefone / WhatsApp')}
+                    <InlineEditable textKey="contact.form_phone_label">{t('contact.form_phone_label', 'Telefone / WhatsApp')}</InlineEditable>
                   </label>
                   <input
                     type="tel"
@@ -203,7 +204,7 @@ const ContactForm: React.FC = () => {
                 {/* Message */}
                 <div>
                   <label className="block text-sm font-bold text-white/60 uppercase tracking-widest mb-3">
-                    {t('contact.form_message_label', 'Mensagem')}
+                    <InlineEditable textKey="contact.form_message_label">{t('contact.form_message_label', 'Mensagem')}</InlineEditable>
                   </label>
                   <textarea
                     name="message"
@@ -232,12 +233,12 @@ const ContactForm: React.FC = () => {
                   {isSubmitting ? (
                     <>
                       <Loader2 size={20} className="animate-spin" />
-                      Enviando...
+                      <InlineEditable textKey="contact.submitting">{t('contact.submitting', 'Enviando...')}</InlineEditable>
                     </>
                   ) : (
                     <>
                       <Send size={20} className="group-hover:translate-x-1 transition-transform" />
-                      {t('contact.submit_button', 'Enviar Mensagem')}
+                      <InlineEditable textKey="contact.submit_button">{t('contact.submit_button', 'Enviar Mensagem')}</InlineEditable>
                     </>
                   )}
                 </button>
