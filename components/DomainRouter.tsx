@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { supabase } from '../services/supabase';
+import { useTexts } from '../context/TextsContext';
 import PublicLandingPage from '../views/PublicLandingPage';
 
 interface DomainRouterProps {
@@ -12,6 +13,7 @@ const DomainRouter: React.FC<DomainRouterProps> = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [resolvedSlug, setResolvedSlug] = useState<string | null>(null);
     const location = useLocation(); 
+    const { isVisualMode } = useTexts();
     
     // Debug Logic
     const [searchParams] = useSearchParams();
@@ -30,17 +32,84 @@ const DomainRouter: React.FC<DomainRouterProps> = ({ children }) => {
 
              log(`🌍 [Router] Checking: ${hostname}${path}`);
 
+
              // 1. Whitelist (System Domains)
+
+
+             // 1. Whitelist (System Domains)
+             const panelUrl = import.meta.env.VITE_PANEL_URL || '';
+             // Remove protocol and trailing slash
+             const panelHost = panelUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+             
+             // Normalize current hostname (remove www.)
+             const cleanHostname = hostname.replace(/^www\./, '');
+             const cleanPanelHost = panelHost.replace(/^www\./, '');
+
+
+             // 0. FORCE CENTRAL LOGIN / ADMIN ACCESS
+             // If user tries to access restricted system paths on a Custom Domain
+             // Redirect them to the Central Panel.
+             const restrictedPaths = ['/login', '/admin', '/register', '/dashboard', '/suporte'];
+             const isRestrictedPath = restrictedPaths.some(p => path === p || path.startsWith(p + '/'));
+
+             if (isRestrictedPath && !hostname.includes('localhost') && cleanHostname !== cleanPanelHost) {
+                  log(`🔒 [Router] Restricted access on external domain (${cleanHostname}${path}) -> Redirecting to Central Panel`);
+                  window.location.href = `${panelUrl}/login`;
+                  return;
+             }
+
+
+             // Root Redirect for Panel (Robust Check)
+             // If current host matches the panel host (ignoring www) AND path is '/'
+             // AND we are NOT in visual mode (which needs '/' to edit the landing page)
+             if (cleanHostname === cleanPanelHost && path === '/' && !isVisualMode) {
+                 log(`🔀 [Router] Root access on Panel Domain (${cleanHostname}) -> Redirecting to /login`);
+                 // Force full reload to ensure clean state
+                 window.location.href = '/login'; 
+                 return;
+             }
+
+
+
              const isSystemDomain = 
                  hostname.includes('localhost') || 
                  hostname.includes('vercel.app') || 
-                 hostname === 'app.imobisaas.com.br';
+                 hostname === 'app.imobisaas.com.br' ||
+                 hostname === panelHost;
+
 
              // 2. Custom Domain Logic
              if (!isSystemDomain) {
                  log(`🌍 [Router] Custom Domain detected: ${hostname}`);
-                 // Custom domain logic would go here
-                 setIsPublicSite(true);
+                 
+                 // Try to resolve tenant by domain
+                 try {
+                     const { data, error } = await supabase
+                         .rpc('get_tenant_by_domain', { domain_input: hostname })
+                         .single();
+
+                     if (data && !error) {
+                         log(`✅ [Router] Tenant Found via Domain: ${data.name} (${data.slug})`);
+                         setResolvedSlug(data.slug);
+                         setIsPublicSite(true);
+                         setLoading(false);
+                         return;
+                     } else {
+                         log(`❌ [Router] Domain not found in DB: ${hostname}`);
+                         // If domain points here but not in DB, maybe show a generic "Domain not connected" or 404
+                         // For now, fall through to main app or just show nothing? 
+                         // Better to show the main app (maybe they are just testing CNAME) or a 404.
+                         // Let's set isPublicSite=true but slug=null to trigger a 404/Empty view if we confuse it?
+                         // Actually, if we return here with slug=null, it renders {children} which is the Main App.
+                         // This is confusing for a random domain. 
+                         // But let's stick to current behavior (render children) for fallback.
+                     }
+                 } catch (e) {
+                     log(`❌ [Router] Exception checking domain: ${e}`);
+                 }
+                
+                // If we didn't return above (domain not found), fallback to Main App 
+                 setIsPublicSite(false);
                  setLoading(false);
                  return;
              }
@@ -93,6 +162,26 @@ const DomainRouter: React.FC<DomainRouterProps> = ({ children }) => {
         checkRoute();
         
     }, [location.pathname, debugMode]); 
+
+    // Redirect Logic for Tenant Sites (Centralized Panel)
+    useEffect(() => {
+        if (!loading && isPublicSite) {
+            // Define paths that should redirect to Central Panel
+            const adminPaths = ['/login', '/register', '/admin', '/suporte', '/dashboard'];
+            const path = location.pathname;
+            
+            // Exact match or starts with
+            const shouldRedirect = adminPaths.some(r => path === r || path.startsWith(r + '/'));
+            
+            if (shouldRedirect) {
+                const panelUrl = import.meta.env.VITE_PANEL_URL;
+                if(panelUrl) {
+                    console.log(`🔀 Redirecting to Central Panel: ${panelUrl}/login`);
+                    window.location.href = `${panelUrl}/login`;
+                }
+            }
+        }
+    }, [loading, isPublicSite, location.pathname]); 
 
     if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>;
 
