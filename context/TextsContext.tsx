@@ -37,7 +37,21 @@ export const TextsProvider: React.FC<TextsProviderProps> = ({ children }) => {
   const setVisualMode = (mode: boolean) => {
     setIsVisualMode(mode);
     localStorage.setItem('visual_edit_mode', mode.toString());
+    if (mode) {
+      document.body.classList.add('visual-editor-active');
+    } else {
+      document.body.classList.remove('visual-editor-active');
+    }
   };
+
+  // Sincronizar classe do body no carregamento
+  useEffect(() => {
+    if (isVisualMode) {
+      document.body.classList.add('visual-editor-active');
+    } else {
+      document.body.classList.remove('visual-editor-active');
+    }
+  }, [isVisualMode]);
 
   // Função para carregar textos
   const loadTexts = async () => {

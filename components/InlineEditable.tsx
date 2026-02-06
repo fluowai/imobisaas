@@ -85,7 +85,9 @@ const InlineEditable: React.FC<InlineEditableProps> = ({
   return (
     <Component 
       className={`relative group transition-all duration-200 ${className} ${
-        isHovered && !isEditing ? 'outline outline-2 outline-indigo-500 outline-offset-4 rounded cursor-cell bg-indigo-50/10' : ''
+        isVisualMode && !isEditing ? 'outline-1 outline-dashed outline-indigo-400/50 outline-offset-2' : ''
+      } ${
+        isHovered && !isEditing ? 'outline outline-2 outline-indigo-500 outline-offset-4 rounded cursor-cell bg-indigo-50/10 shadow-sm' : ''
       } ${isEditing ? 'z-[100]' : ''} ${Component === 'span' ? 'inline-block' : 'block'}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}

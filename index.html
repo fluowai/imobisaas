@@ -30,6 +30,21 @@
       .custom-scrollbar::-webkit-scrollbar-thumb:hover {
         background: #cbd5e1;
       }
+      
+      /* Visual Editor Visibility Overrides */
+      .visual-editor-active .opacity-0,
+      .visual-editor-active .invisible {
+        opacity: 1 !important;
+        visibility: visible !important;
+      }
+      
+      .visual-editor-active .group-hover\:opacity-100 {
+        opacity: 1 !important;
+      }
+
+      .visual-editor-active .translate-y-4 {
+        transform: translateY(0) !important;
+      }
     </style>
     <!-- 
     <script type="importmap">
