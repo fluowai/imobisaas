@@ -13,8 +13,8 @@ export default async function handler(req, res) {
         if (method === 'GET') {
             // Check Evolution API status
             try {
-                const baseUrl = process.env.EVOLUTION_API_URL || 'https://evolution.consultio.com.br';
-                const apiKey = process.env.EVOLUTION_API_KEY || '422A9D0A-FA6A-4DDC-8A8C-D3501863C9E4';
+                const baseUrl = process.env.EVOLUTION_API_URL || 'https://api.consultio.com.br';
+                const apiKey = process.env.EVOLUTION_API_KEY || '8b90148caf66df22c8212b810d64270b';
                 
                 const response = await axios.get(`${baseUrl}/instance/fetchInstances`, {
                     headers: { 'apikey': apiKey }
@@ -103,8 +103,8 @@ export default async function handler(req, res) {
                 const { instanceName, organizationId } = req.body;
                 
                 // Prioritize Env Vars for Global API Key
-                const baseUrl = process.env.EVOLUTION_API_URL || 'https://evolution.consultio.com.br';
-                const globalApiKey = process.env.EVOLUTION_API_KEY || '422A9D0A-FA6A-4DDC-8A8C-D3501863C9E4';
+                const baseUrl = process.env.EVOLUTION_API_URL || 'https://api.consultio.com.br';
+                const globalApiKey = process.env.EVOLUTION_API_KEY || '8b90148caf66df22c8212b810d64270b';
                 
                 if (!baseUrl) return res.status(400).json({ error: 'Evolution API baseUrl não configurada no servidor' });
                 
