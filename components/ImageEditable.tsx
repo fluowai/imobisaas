@@ -165,7 +165,6 @@ const ImageEditable: React.FC<ImageEditableProps> = ({
               </div>
             </div>
           </div>
-        </div>
       ) : (
         isHovered && (
           <div className="absolute top-4 right-4 bg-indigo-600 text-white text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-widest flex items-center gap-2 shadow-xl animate-in fade-in zoom-in duration-200 pointer-events-none">
